@@ -1,7 +1,13 @@
 from argparse import ArgumentParser
 from pathlib import Path
 
-from pyopenms import MSSpectrum, OnDiscMSExperiment, PlainMSDataWritingConsumer
+from pyopenms import (
+    MSExperiment,
+    MSSpectrum,
+    OnDiscMSExperiment,
+    PeakFileOptions,
+    PlainMSDataWritingConsumer,
+)
 from src.mzml_processing.constants import LOWER_COLLISION_ENERGY
 
 OUTPUT_SUFFIX_LOWER_ENERGY = "_lower_energy.mzML"
@@ -15,14 +21,13 @@ def check_ms1_or_low_energy_spectrum(spectrum: MSSpectrum) -> bool:
     )
 
 
-def count_lower_energy_spectra(exp: OnDiscMSExperiment) -> int:
+def count_lower_energy_spectra(exp_metadata: MSExperiment) -> int:
     number_spectra = 0
 
-    for i in range(exp.getNrSpectra()):
-        spectrum = exp.getSpectrum(i)
-        if check_ms1_or_low_energy_spectrum(spectrum):
+    for i in range(exp_metadata.getNrSpectra()):
+        spectrum_metadata = exp_metadata.getSpectrum(i)  # type: ignore[attr-defined]
+        if check_ms1_or_low_energy_spectrum(spectrum_metadata):
             number_spectra += 1
-
     return number_spectra
 
 
@@ -36,15 +41,25 @@ def extract_lower_energy_windows(mzml_path: Path) -> None:
 
     exp = OnDiscMSExperiment()
     exp.openFile(str(mzml_path))
+    exp_metadata = exp.getMetaData()
+
     consumer = PlainMSDataWritingConsumer(str(output_path))
 
-    number_expected_spectra = count_lower_energy_spectra(exp)
+    options = PeakFileOptions()
+    options.setMz32Bit(True)
+    options.setIntensity32Bit(True)
+    consumer.setOptions(options)
+
+    consumer.setExperimentalSettings(exp.getExperimentalSettings())
+
+    number_expected_spectra = count_lower_energy_spectra(exp_metadata)
     consumer.setExpectedSize(number_expected_spectra, 0)
 
-    # TODO: a try run with subset and whole number of spectra, keep experimental settings? Chromatograms?
-    for i in range(exp.getNrSpectra()):
-        spectrum = exp.getSpectrum(i)
-        if check_ms1_or_low_energy_spectrum(spectrum):
+    for i in range(exp_metadata.getNrSpectra()):
+        spectrum_metadata = exp_metadata.getSpectrum(i)
+
+        if check_ms1_or_low_energy_spectrum(spectrum_metadata):
+            spectrum = exp.getSpectrum(i)
             consumer.consumeSpectrum(spectrum)
 
     del consumer
