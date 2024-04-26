@@ -4,65 +4,56 @@ from pathlib import Path
 from pyopenms import (
     MSExperiment,
     MSSpectrum,
+    MzMLFile,
     OnDiscMSExperiment,
     PeakFileOptions,
     PlainMSDataWritingConsumer,
 )
-from src.mzml_processing.constants import LOWER_COLLISION_ENERGY
+from src.config.config import Config
 
 OUTPUT_SUFFIX_LOWER_ENERGY = "_lower_energy.mzML"
 
 
-def check_ms1_or_low_energy_spectrum(spectrum: MSSpectrum) -> bool:
+def check_ms1_or_low_energy_spectrum(
+    spectrum: MSSpectrum, lower_collision_energy: int
+) -> bool:
     return (
         spectrum.getMSLevel() == 1
         or spectrum.getPrecursors()[0].getMetaValue("collision energy")
-        == LOWER_COLLISION_ENERGY
+        == lower_collision_energy
     )
 
 
-def count_lower_energy_spectra(exp_metadata: MSExperiment) -> int:
-    number_spectra = 0
-
-    for i in range(exp_metadata.getNrSpectra()):
-        spectrum_metadata = exp_metadata.getSpectrum(i)  # type: ignore[attr-defined]
-        if check_ms1_or_low_energy_spectrum(spectrum_metadata):
-            number_spectra += 1
-    return number_spectra
-
-
-def extract_lower_energy_windows(mzml_path: Path) -> None:
+def extract_lower_energy_windows(mzml_path: Path, config_path: Path) -> None:
     """Given an mzML file with data consisting of higher- and lower-energy scan windows,
     create an mzML file that contains only the lower-energy windows.
     Implementation based on
     https://pyopenms.readthedocs.io/en/latest/user_guide/memory_management.html
     """
     output_path = mzml_path.parent / (mzml_path.stem + OUTPUT_SUFFIX_LOWER_ENERGY)
+    config = Config.from_path(config_path)
 
-    exp = OnDiscMSExperiment()
-    exp.openFile(str(mzml_path))
-    exp_metadata = exp.getMetaData()
+    exp = MSExperiment()
+    MzMLFile().load(str(mzml_path), exp)
 
-    consumer = PlainMSDataWritingConsumer(str(output_path))
+    spectra = exp.getSpectra()
+
+    extracted_spectra = [
+        spectrum
+        for spectrum in spectra
+        if check_ms1_or_low_energy_spectrum(spectrum, config.lower_collision_energy)
+    ]
+
+    output_exp = MSExperiment()
+    output_exp.setSpectra(extracted_spectra)
 
     options = PeakFileOptions()
     options.setMz32Bit(True)
     options.setIntensity32Bit(True)
-    consumer.setOptions(options)
 
-    consumer.setExperimentalSettings(exp.getExperimentalSettings())
-
-    number_expected_spectra = count_lower_energy_spectra(exp_metadata)
-    consumer.setExpectedSize(number_expected_spectra, 0)
-
-    for i in range(exp_metadata.getNrSpectra()):
-        spectrum_metadata = exp_metadata.getSpectrum(i)
-
-        if check_ms1_or_low_energy_spectrum(spectrum_metadata):
-            spectrum = exp.getSpectrum(i)
-            consumer.consumeSpectrum(spectrum)
-
-    del consumer
+    output_file = MzMLFile()
+    output_file.setOptions(options)
+    output_file.store(str(output_path), output_exp)
 
 
 if __name__ == "__main__":
@@ -72,6 +63,11 @@ if __name__ == "__main__":
         type=str,
         help="Path to mzML file with higher and lower collision energy windows",
     )
+    parser.add_argument(
+        "--config_path",
+        type=str,
+        help="Path to config JSON file that defines values for higher and lower collision energy",
+    )
     args = parser.parse_args()
 
-    extract_lower_energy_windows(Path(args.mzml_path))
+    extract_lower_energy_windows(Path(args.mzml_path), Path(args.config_path))
