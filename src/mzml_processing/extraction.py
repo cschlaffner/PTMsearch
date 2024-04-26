@@ -27,8 +27,8 @@ def check_ms1_or_low_energy_spectrum(
 def extract_lower_energy_windows(mzml_path: Path, config_path: Path) -> None:
     """Given an mzML file with data consisting of higher- and lower-energy scan windows,
     create an mzML file that contains only the lower-energy windows.
-    Implementation based on
-    https://pyopenms.readthedocs.io/en/latest/user_guide/memory_management.html
+    Implementation loosely based on
+    https://pyopenms.readthedocs.io/en/release_2.3.0/data_manipulation.html
     """
     output_path = mzml_path.parent / (mzml_path.stem + OUTPUT_SUFFIX_LOWER_ENERGY)
     config = Config.from_path(config_path)
