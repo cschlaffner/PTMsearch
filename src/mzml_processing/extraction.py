@@ -1,15 +1,9 @@
 from argparse import ArgumentParser
 from pathlib import Path
 
-from pyopenms import (
-    MSExperiment,
-    MSSpectrum,
-    MzMLFile,
-    OnDiscMSExperiment,
-    PeakFileOptions,
-    PlainMSDataWritingConsumer,
-)
+from pyopenms import MSExperiment, MSSpectrum, MzMLFile
 from src.config.config import Config
+from src.mzml_processing.utils import get_diann_compatible_mzml_output_file
 
 OUTPUT_SUFFIX_LOWER_ENERGY = "_lower_energy.mzML"
 
@@ -24,9 +18,26 @@ def check_ms1_or_low_energy_spectrum(
     )
 
 
-def extract_lower_energy_windows(mzml_path: Path, config_path: Path) -> None:
+def extract_lower_energy_windows(
+    exp: MSExperiment, lower_collision_energy: int
+) -> MSExperiment:
+    """Extracts all lower-energy and MS1 scan windows to a second MSExperiment"""
+    spectra = exp.getSpectra()
+
+    extracted_spectra = [
+        spectrum
+        for spectrum in spectra
+        if check_ms1_or_low_energy_spectrum(spectrum, lower_collision_energy)
+    ]
+
+    output_exp = MSExperiment()
+    output_exp.setSpectra(extracted_spectra)
+    return output_exp
+
+
+def extract_and_store_lower_energy_windows(mzml_path: Path, config_path: Path) -> None:
     """Given an mzML file with data consisting of higher- and lower-energy scan windows,
-    create an mzML file that contains only the lower-energy windows.
+    create an mzML file that contains only the lower-energy and MS1 windows.
     Implementation loosely based on
     https://pyopenms.readthedocs.io/en/release_2.3.0/data_manipulation.html
     """
@@ -36,23 +47,9 @@ def extract_lower_energy_windows(mzml_path: Path, config_path: Path) -> None:
     exp = MSExperiment()
     MzMLFile().load(str(mzml_path), exp)
 
-    spectra = exp.getSpectra()
+    output_exp = extract_lower_energy_windows(exp, config.lower_collision_energy)
 
-    extracted_spectra = [
-        spectrum
-        for spectrum in spectra
-        if check_ms1_or_low_energy_spectrum(spectrum, config.lower_collision_energy)
-    ]
-
-    output_exp = MSExperiment()
-    output_exp.setSpectra(extracted_spectra)
-
-    options = PeakFileOptions()
-    options.setMz32Bit(True)
-    options.setIntensity32Bit(True)
-
-    output_file = MzMLFile()
-    output_file.setOptions(options)
+    output_file = get_diann_compatible_mzml_output_file()
     output_file.store(str(output_path), output_exp)
 
 
@@ -70,4 +67,4 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    extract_lower_energy_windows(Path(args.mzml_path), Path(args.config_path))
+    extract_and_store_lower_energy_windows(Path(args.mzml_path), Path(args.config_path))
