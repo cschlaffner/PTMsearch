@@ -1,4 +1,4 @@
-from pyopenms import MzMLFile, PeakFileOptions
+from pyopenms import MSSpectrum, MzMLFile, PeakFileOptions
 
 
 def get_diann_compatible_mzml_output_file() -> MzMLFile:
@@ -13,3 +13,11 @@ def get_diann_compatible_mzml_output_file() -> MzMLFile:
     output_file = MzMLFile()
     output_file.setOptions(options)
     return output_file
+
+
+def get_spectrum_collision_energy(spectrum: MSSpectrum) -> float:
+    """Retrieves the collision energy of a spectrum, assuming structure
+    <spectrum> <precursorList> <precursor> <activation> <cvParam name="collision energy" value=XX>
+    and only one precursor entry.
+    """
+    return spectrum.getPrecursors()[0].getMetaValue("collision energy")
