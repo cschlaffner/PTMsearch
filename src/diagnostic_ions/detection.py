@@ -21,14 +21,11 @@ class DiagnosticIonDetector:
     ) -> None:
         self.mass_tolerance = mass_tolerance
 
-        self.known_ions = pd.read_csv(
-            known_ions_file, header=0, index_col=0, dtype={"mz": float}
-        )
-        assert self.known_ions.index.name == "mod_name" and self.known_ions.columns == [
-            "mz"
-        ], (
-            "Known ions CSV file has wrong format, should include columns mod_name",
-            "(name of the modification), and mz (m/z value of the diagnostic ion).",
+        self.known_ions = pd.read_csv(known_ions_file, header=0, dtype={"mz": float})
+        assert self.known_ions.columns == ["amino_acid", "mod_name", "mz"], (
+            "Known ions CSV file has wrong format, should include columns: amino_acid",
+            "(name of the amino acid that is modified), mod_name (name of the modification),",
+            "and mz (m/z value of the diagnostic ion).",
         )
 
         self.has_noisy_spectra = has_noisy_spectra
@@ -60,7 +57,9 @@ class DiagnosticIonDetector:
         # TODO: add Dalton
         return self.mass_tolerance * ion_mz / 10e6
 
-    def extract_diagnostic_ions_for_spectrum(self, spectrum: MSSpectrum) -> List[str]:
+    def extract_diagnostic_ions_for_spectrum(
+        self, spectrum: MSSpectrum
+    ) -> pd.DataFrame:
         """Extract the names (TODO: add more information) of the modifications
         for which a diagnostic ion matches a spectrum peak considering the tolerance."""
 
@@ -69,22 +68,52 @@ class DiagnosticIonDetector:
         if self.has_noisy_spectra:
             spectrum_mz, intensities = self._remove_noise(spectrum_mz, intensities)
 
-        detected_ions_mask = [
-            np.any(
+        detected_ions_df = pd.DataFrame(
+            columns=[
+                "spectrum_id",
+                "amino_acid",
+                "mod_name",
+                "theoretical_mz",
+                "detected_mz",
+                "detected_intensity",
+            ]
+        )
+
+        for known_ion in self.known_ions.iterrows():
+            detected_peaks_mask = (
                 [  # TODO: add ppm/Dalton computation for mass tolerance
                     np.isclose(
-                        known_ion_mz,
+                        known_ion["mz"],
                         peak_mz,
                         rtol=0,
-                        atol=self._get_absolute_mass_tolerance(known_ion_mz),
+                        atol=self._get_absolute_mass_tolerance(known_ion["mz"]),
                     )
                     for peak_mz in spectrum_mz
                 ]
             )
-            for known_ion_mz in self.known_ions["mz"]
-        ]
+            detected_peaks_mz = spectrum_mz[detected_peaks_mask]
+            detected_peaks_intensities = intensities[detected_peaks_mask]
+            num_hits = len(detected_peaks_mz)
+            # TODO: check if it works and if I really have to use ignore_index
+            detected_ions_df = pd.concat(
+                [
+                    detected_ions_df,
+                    # TODO: check if working with native IDs is the right way
+                    pd.DataFrame(
+                        {
+                            "spectrum_id": np.repeat(spectrum.getNativeID(), num_hits),
+                            "amino_acid": np.repeat(known_ion["amino_acid"], num_hits),
+                            "mod_name": np.repeat(known_ion["mod_name"], num_hits),
+                            "theoretical_mz": np.repeat(known_ion["mz"], num_hits),
+                            "detected_mz": detected_peaks_mz,
+                            "detected_intensity": detected_peaks_intensities,
+                        }
+                    ),
+                ],
+                ignore_index=True,
+            )
 
-        return self.known_ions[detected_ions_mask].index.to_list()
+        return detected_ions_df
 
     def validate_diagnostic_ion_spectra(
         self, spectra: List[MSSpectrum], higher_collision_energy: float
@@ -99,16 +128,22 @@ class DiagnosticIonDetector:
 
     def extract_diagnostic_ions_for_spectra(
         self, spectra: List[MSSpectrum]
-    ) -> List[List[str]]:
+    ) -> pd.DataFrame:
         """Extract modification names for the provided spectra."""
-        return [
-            self.extract_diagnostic_ions_for_spectrum(spectrum) for spectrum in spectra
-        ]
+        return pd.concat(
+            [
+                self.extract_diagnostic_ions_for_spectrum(spectrum)
+                for spectrum in spectra
+            ],
+            ignore_index=True,
+        )
 
     def extract_diagnostic_ions_for_spectra_with_validation(
         self, spectra: List[MSSpectrum], higher_collision_energy: float
-    ) -> List[List[str]]:
+    ) -> pd.DataFrame:
         """Extract modification names for the provided spectra
         including validation (MS level 2 and higher collision energy)."""
         self.validate_diagnostic_ion_spectra(spectra, higher_collision_energy)
         return self.extract_diagnostic_ions_for_spectra(spectra)
+
+    # TODO: update docs to the df using version, make sure to do duplicate handling afterwards!
