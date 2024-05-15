@@ -2,24 +2,27 @@ from argparse import ArgumentParser
 from pathlib import Path
 
 from pyopenms import MSExperiment, MSSpectrum, MzMLFile
+
 from src.config.config import Config
-from src.mzml_processing.utils import get_diann_compatible_mzml_output_file
+from src.mzml_processing.utils import (
+    get_diann_compatible_mzml_output_file,
+    get_spectrum_collision_energy,
+)
 
 OUTPUT_SUFFIX_LOWER_ENERGY = "_lower_energy.mzML"
 
 
 def check_ms1_or_low_energy_spectrum(
-    spectrum: MSSpectrum, lower_collision_energy: int
+    spectrum: MSSpectrum, lower_collision_energy: float
 ) -> bool:
     return (
         spectrum.getMSLevel() == 1
-        or spectrum.getPrecursors()[0].getMetaValue("collision energy")
-        == lower_collision_energy
+        or get_spectrum_collision_energy(spectrum) == lower_collision_energy
     )
 
 
 def extract_lower_energy_windows(
-    exp: MSExperiment, lower_collision_energy: int
+    exp: MSExperiment, lower_collision_energy: float
 ) -> MSExperiment:
     """Extracts all lower-energy and MS1 scan windows to a second MSExperiment"""
     spectra = exp.getSpectra()

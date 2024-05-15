@@ -5,8 +5,9 @@ from pathlib import Path
 
 @dataclass
 class Config:
-    lower_collision_energy: int
-    higher_collision_energy: int
+    lower_collision_energy: float
+    higher_collision_energy: float
+    known_ions_file: str
 
     @classmethod
     def from_path(cls, config_path: Path):
