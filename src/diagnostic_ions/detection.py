@@ -1,34 +1,67 @@
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 from pyopenms import MSSpectrum
+from scipy.stats import median_abs_deviation
 
 from src.mzml_processing.utils import get_spectrum_collision_energy
 
 
 class DiagnosticIonDetector:
+    """Extracts diagnostic ion information from higher-energy MS2 spectra."""
+
     def __init__(
         self,
         known_ions_file: Path,
         mass_tolerance: float,
+        has_noisy_spectra: bool,
+        signal_to_noise_ratio_threshold: Optional[float] = None,
     ) -> None:
         self.mass_tolerance = mass_tolerance
+
         self.known_ions = pd.read_csv(
             known_ions_file, header=0, index_col=0, dtype={"mz": float}
         )
         assert self.known_ions.index.name == "mod_name" and self.known_ions.columns == [
             "mz"
-        ], "Known ions CSV file has wrong format, should include columns mod_name (name of the modification), and mz (m/z value of the diagnostic ion).",
-    
+        ], (
+            "Known ions CSV file has wrong format, should include columns mod_name",
+            "(name of the modification), and mz (m/z value of the diagnostic ion).",
+        )
+
+        self.has_noisy_spectra = has_noisy_spectra
+        if has_noisy_spectra:
+            assert signal_to_noise_ratio_threshold is not None, (
+                "To remove noise from noisy spectra, a threshold for the",
+                "signal-to-noise ratio (signal / median absolute deviation) is required.",
+            )
+            self.signal_to_noise_ratio_threshold = signal_to_noise_ratio_threshold
+
+    def remove_noise(
+        self, spectrum_mz: np.ndarray, intensities: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Select peaks that pass the signal-to-noise ratio
+        (signal / median absolute deviation) threshold."""
+        signal_to_noise_ratio = intensities / median_abs_deviation(intensities)
+        intensities_filtered = intensities[
+            signal_to_noise_ratio >= self.signal_to_noise_ratio_threshold
+        ]
+        mz_filtered = spectrum_mz[
+            signal_to_noise_ratio >= self.signal_to_noise_ratio_threshold
+        ]
+        return mz_filtered, intensities_filtered
 
     def extract_diagnostic_ions_for_spectrum(self, spectrum: MSSpectrum) -> List[str]:
-        """Extract the names of the modifications for which a diagnostic ion
-        matches a spectrum peak (TODO: noise handling) considering the tolerance."""
+        """Extract the names (TODO: add more information) of the modifications
+        for which a diagnostic ion matches a spectrum peak considering the tolerance."""
 
         spectrum_mz, intensities = spectrum.get_peaks()
-        # WIP, TODO: add signal-to-noise ratio
+
+        if self.has_noisy_spectra:
+            spectrum_mz, intensities = self.remove_noise(spectrum_mz, intensities)
+
         detected_ions_mask = [
             np.any(
                 [
@@ -63,6 +96,7 @@ class DiagnosticIonDetector:
     def extract_diagnostic_ions_for_spectra_with_validation(
         self, spectra: List[MSSpectrum], higher_collision_energy: float
     ) -> List[List[str]]:
-        """Extract modification names for the provided spectra including validation (MS level 2 and higher collision energy"""
+        """Extract modification names for the provided spectra
+        including validation (MS level 2 and higher collision energy)."""
         self.validate_diagnostic_ion_spectra(spectra, higher_collision_energy)
         return self.extract_diagnostic_ions_for_spectra(spectra)

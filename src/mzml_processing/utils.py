@@ -1,3 +1,5 @@
+from typing import cast
+
 from pyopenms import MSSpectrum, MzMLFile, PeakFileOptions
 
 
@@ -20,4 +22,11 @@ def get_spectrum_collision_energy(spectrum: MSSpectrum) -> float:
     <spectrum> <precursorList> <precursor> <activation> <cvParam name="collision energy" value=XX>
     and only one precursor entry.
     """
-    return spectrum.getPrecursors()[0].getMetaValue("collision energy")
+    collision_energy = spectrum.getPrecursors()[0].getMetaValue("collision energy")
+    assert isinstance(collision_energy, float), (
+        "Collision energy value could not be extracted, check your MzML structure",
+        "",
+    )
+
+    # Type casting to please the typecheck
+    return cast(float, collision_energy)
