@@ -39,11 +39,12 @@ class DiagnosticIonDetector:
             )
             self.signal_to_noise_ratio_threshold = signal_to_noise_ratio_threshold
 
-    def remove_noise(
+    def _remove_noise(
         self, spectrum_mz: np.ndarray, intensities: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Select peaks that pass the signal-to-noise ratio
-        (signal / median absolute deviation) threshold."""
+        (signal / median absolute deviation) threshold.
+        TODO: add source for MAD usage?"""
         signal_to_noise_ratio = intensities / median_abs_deviation(intensities)
         intensities_filtered = intensities[
             signal_to_noise_ratio >= self.signal_to_noise_ratio_threshold
@@ -53,6 +54,12 @@ class DiagnosticIonDetector:
         ]
         return mz_filtered, intensities_filtered
 
+    def _get_absolute_mass_tolerance(self, ion_mz: float) -> float:
+        """Compute the actual mass tolerance from the specified tolerance and unit,
+        currently only ppm."""
+        # TODO: add Dalton
+        return self.mass_tolerance * ion_mz / 10e6
+
     def extract_diagnostic_ions_for_spectrum(self, spectrum: MSSpectrum) -> List[str]:
         """Extract the names (TODO: add more information) of the modifications
         for which a diagnostic ion matches a spectrum peak considering the tolerance."""
@@ -60,12 +67,17 @@ class DiagnosticIonDetector:
         spectrum_mz, intensities = spectrum.get_peaks()
 
         if self.has_noisy_spectra:
-            spectrum_mz, intensities = self.remove_noise(spectrum_mz, intensities)
+            spectrum_mz, intensities = self._remove_noise(spectrum_mz, intensities)
 
         detected_ions_mask = [
             np.any(
-                [
-                    np.isclose(known_ion_mz, peak_mz, rtol=0, atol=self.mass_tolerance)
+                [  # TODO: add ppm/Dalton computation for mass tolerance
+                    np.isclose(
+                        known_ion_mz,
+                        peak_mz,
+                        rtol=0,
+                        atol=self._get_absolute_mass_tolerance(known_ion_mz),
+                    )
                     for peak_mz in spectrum_mz
                 ]
             )
