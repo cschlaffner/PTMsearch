@@ -1,47 +1,28 @@
+from test.spectra import (
+    COLLISION_ENERGY_LOWER,
+    spectrum_ms1,
+    spectrum_ms2_higher_energy,
+    spectrum_ms2_lower_energy,
+)
 from typing import List
 
 import pytest
 from _pytest.fixtures import SubRequest
 from pyopenms import MSExperiment, MSSpectrum, Precursor
+
 from src.mzml_processing.extraction import extract_lower_energy_windows
-
-COLLISION_ENERGY_HIGHER = 50
-COLLISION_ENERGY_LOWER = 30
-
-
-def spectrum_ms1() -> MSSpectrum:
-    spec = MSSpectrum()
-    spec.setMSLevel(1)
-    return spec
 
 
 def spectra_ms1() -> List[MSSpectrum]:
     return [spectrum_ms1() for _ in range(2)]
 
 
-def spectrum_ms2(collision_energy: int) -> MSSpectrum:
-    precursor = Precursor()
-    precursor.setMetaValue("collision energy", collision_energy)
-    spec = MSSpectrum()
-    spec.setPrecursors([precursor])
-    spec.setMSLevel(2)
-    return spec
-
-
-def spectrum_lower_energy() -> MSSpectrum:
-    return spectrum_ms2(COLLISION_ENERGY_LOWER)
-
-
 def spectra_lower_energy() -> List[MSSpectrum]:
-    return [spectrum_lower_energy() for _ in range(4)]
-
-
-def spectrum_higher_energy() -> MSSpectrum:
-    return spectrum_ms2(COLLISION_ENERGY_HIGHER)
+    return [spectrum_ms2_lower_energy() for _ in range(4)]
 
 
 def spectra_higher_energy() -> List[MSSpectrum]:
-    return [spectrum_higher_energy() for _ in range(3)]
+    return [spectrum_ms2_higher_energy() for _ in range(3)]
 
 
 @pytest.fixture

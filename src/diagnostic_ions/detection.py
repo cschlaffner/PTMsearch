@@ -1,12 +1,14 @@
+from enum import Enum
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 from pyopenms import MSSpectrum
-from scipy.stats import median_abs_deviation
 
 from src.mzml_processing.utils import get_spectrum_collision_energy
+
+MassToleranceUnit = Enum("MassToleranceUnit", ["ppm", "Da"])
 
 
 class DiagnosticIonDetector:
@@ -16,57 +18,57 @@ class DiagnosticIonDetector:
         self,
         known_ions_file: Path,
         mass_tolerance: float,
-        has_noisy_spectra: bool,
-        signal_to_noise_ratio_threshold: Optional[float] = None,
+        mass_tolerance_unit: str,
+        intensity_threshold: Optional[float] = None,
     ) -> None:
         self.mass_tolerance = mass_tolerance
-
+        self.mass_tolerance_unit = mass_tolerance_unit
         self.known_ions = pd.read_csv(known_ions_file, header=0, dtype={"mz": float})
+        self.intensity_threshold = intensity_threshold
+
+        self._validate_config()
+
+    def _validate_config(self):
         assert self.known_ions.columns == ["amino_acid", "mod_name", "mz"], (
             "Known ions CSV file has wrong format, should include columns: amino_acid",
             "(name of the amino acid that is modified), mod_name (name of the modification),",
             "and mz (m/z value of the diagnostic ion).",
         )
+        assert self.mass_tolerance_unit in [unit.name for unit in MassToleranceUnit]
 
-        self.has_noisy_spectra = has_noisy_spectra
-        if has_noisy_spectra:
-            assert signal_to_noise_ratio_threshold is not None, (
-                "To remove noise from noisy spectra, a threshold for the",
-                "signal-to-noise ratio (signal / median absolute deviation) is required.",
-            )
-            self.signal_to_noise_ratio_threshold = signal_to_noise_ratio_threshold
-
+    # TODO: clean up
     def _remove_noise(
         self, spectrum_mz: np.ndarray, intensities: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """Select peaks that pass the signal-to-noise ratio
-        (signal / median absolute deviation) threshold.
-        TODO: add source for MAD usage?"""
-        signal_to_noise_ratio = intensities / median_abs_deviation(intensities)
-        intensities_filtered = intensities[
-            signal_to_noise_ratio >= self.signal_to_noise_ratio_threshold
-        ]
-        mz_filtered = spectrum_mz[
-            signal_to_noise_ratio >= self.signal_to_noise_ratio_threshold
-        ]
+        # """Select peaks that pass the signal-to-noise ratio
+        # (signal / median absolute deviation) threshold.
+        # TODO: add source for MAD usage?"""
+        # # TODO: redo
+        # signal_to_noise_ratio = intensities / median_abs_deviation(intensities)
+        """Select peaks that pass the intensity threshold."""
+        thresholding_mask = intensities >= self.intensity_threshold
+        intensities_filtered = intensities[thresholding_mask]
+        mz_filtered = spectrum_mz[thresholding_mask]
         return mz_filtered, intensities_filtered
 
     def _get_absolute_mass_tolerance(self, ion_mz: float) -> float:
-        """Compute the actual mass tolerance from the specified tolerance and unit,
-        currently only ppm."""
-        # TODO: add Dalton
-        return self.mass_tolerance * ion_mz / 10e6
+        """Compute the actual mass tolerance from the specified tolerance and unit."""
+        # TODO: check Dalton
+        return (
+            self.mass_tolerance * ion_mz / 10e6
+            if self.mass_tolerance_unit == MassToleranceUnit.ppm.name
+            else self.mass_tolerance
+        )
 
     def extract_diagnostic_ions_for_spectrum(
         self, spectrum: MSSpectrum
     ) -> pd.DataFrame:
-        """Extract the names (TODO: add more information) of the modifications
+        """Extract information about the modifications
         for which a diagnostic ion matches a spectrum peak considering the tolerance."""
 
         spectrum_mz, intensities = spectrum.get_peaks()
 
-        if self.has_noisy_spectra:
-            spectrum_mz, intensities = self._remove_noise(spectrum_mz, intensities)
+        spectrum_mz, intensities = self._remove_noise(spectrum_mz, intensities)
 
         detected_ions_df = pd.DataFrame(
             columns=[
@@ -80,25 +82,22 @@ class DiagnosticIonDetector:
         )
 
         for known_ion in self.known_ions.iterrows():
-            detected_peaks_mask = (
-                [  # TODO: add ppm/Dalton computation for mass tolerance
-                    np.isclose(
-                        known_ion["mz"],
-                        peak_mz,
-                        rtol=0,
-                        atol=self._get_absolute_mass_tolerance(known_ion["mz"]),
-                    )
-                    for peak_mz in spectrum_mz
-                ]
-            )
+            detected_peaks_mask = [
+                np.isclose(
+                    known_ion["mz"],
+                    peak_mz,
+                    rtol=0,
+                    atol=self._get_absolute_mass_tolerance(known_ion["mz"]),
+                )
+                for peak_mz in spectrum_mz
+            ]
             detected_peaks_mz = spectrum_mz[detected_peaks_mask]
             detected_peaks_intensities = intensities[detected_peaks_mask]
             num_hits = len(detected_peaks_mz)
-            # TODO: check if it works and if I really have to use ignore_index
+            # TODO: check if it works
             detected_ions_df = pd.concat(
                 [
                     detected_ions_df,
-                    # TODO: check if working with native IDs is the right way
                     pd.DataFrame(
                         {
                             "spectrum_id": np.repeat(spectrum.getNativeID(), num_hits),
@@ -116,7 +115,7 @@ class DiagnosticIonDetector:
         return detected_ions_df
 
     def validate_diagnostic_ion_spectra(
-        self, spectra: List[MSSpectrum], higher_collision_energy: float
+        self, spectra: List[MSSpectrum], higher_collision_energy: Union[float, int]
     ) -> None:
         """Validates that spectra are of MS level 2 and with higher collision energy in order
         to extract diagnostic ions from them."""
@@ -139,7 +138,7 @@ class DiagnosticIonDetector:
         )
 
     def extract_diagnostic_ions_for_spectra_with_validation(
-        self, spectra: List[MSSpectrum], higher_collision_energy: float
+        self, spectra: List[MSSpectrum], higher_collision_energy: Union[float, int]
     ) -> pd.DataFrame:
         """Extract modification names for the provided spectra
         including validation (MS level 2 and higher collision energy)."""

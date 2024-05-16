@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 from pathlib import Path
+from typing import Union
 
 from pyopenms import MSExperiment, MSSpectrum, MzMLFile
 
@@ -13,7 +14,7 @@ OUTPUT_SUFFIX_LOWER_ENERGY = "_lower_energy.mzML"
 
 
 def check_ms1_or_low_energy_spectrum(
-    spectrum: MSSpectrum, lower_collision_energy: float
+    spectrum: MSSpectrum, lower_collision_energy: Union[float, int]
 ) -> bool:
     return (
         spectrum.getMSLevel() == 1
@@ -22,7 +23,7 @@ def check_ms1_or_low_energy_spectrum(
 
 
 def extract_lower_energy_windows(
-    exp: MSExperiment, lower_collision_energy: float
+    exp: MSExperiment, lower_collision_energy: Union[float, int]
 ) -> MSExperiment:
     """Extracts all lower-energy and MS1 scan windows to a second MSExperiment"""
     spectra = exp.getSpectra()
