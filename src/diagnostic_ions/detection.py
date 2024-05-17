@@ -59,7 +59,7 @@ class DiagnosticIonDetector:
         """Compute the actual mass tolerance from the specified tolerance and unit."""
         # TODO: check Dalton
         return (
-            self.mass_tolerance * ion_mz / 10e6
+            self.mass_tolerance * ion_mz / 1e6
             if self.mass_tolerance_unit == MassToleranceUnit.ppm.name
             else self.mass_tolerance
         )
@@ -144,13 +144,5 @@ class DiagnosticIonDetector:
             ],
             ignore_index=True,
         )
-
-    def extract_diagnostic_ions_for_spectra_with_validation(
-        self, spectra: List[MSSpectrum], higher_collision_energy: Union[float, int]
-    ) -> pd.DataFrame:
-        """Extract modification names for the provided spectra
-        including validation (MS level 2 and higher collision energy)."""
-        self.validate_diagnostic_ion_spectra(spectra, higher_collision_energy)
-        return self.extract_diagnostic_ions_for_spectra(spectra)
 
     # TODO: update docs to the df using version, make sure to do duplicate handling afterwards!
