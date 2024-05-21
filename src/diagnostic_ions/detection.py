@@ -70,7 +70,7 @@ class DiagnosticIonDetector:
         assert (
             spectrum.getMSLevel() == 2
             and get_spectrum_collision_energy(spectrum) == self.higher_collision_energy
-        )
+        ), "Spectrum for diagnostic ion extraction must be a higher-energy MS2 scan."
 
     def extract_diagnostic_ions_for_spectrum(
         self, spectrum: MSSpectrum
