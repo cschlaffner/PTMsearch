@@ -23,10 +23,25 @@ def get_spectrum_collision_energy(spectrum: MSSpectrum) -> Union[float, int]:
     and only one precursor entry.
     """
     collision_energy = spectrum.getPrecursors()[0].getMetaValue("collision energy")
-    assert isinstance(collision_energy, float) or isinstance(collision_energy, int), (
+    assert isinstance(collision_energy, (float, int)), (
         "Collision energy value could not be extracted, check your MzML structure",
         "",
     )
 
     # Type casting to please the typecheck
     return cast(float, collision_energy)
+
+
+def check_collision_energy_ms2_spectrum(
+    spectrum: MSSpectrum, collision_energy: Union[float, int]
+) -> bool:
+    """Checks whether a spectrum is of MS level 2 and with a certain collision energy."""
+    return (
+        spectrum.getMSLevel() == 2
+        and get_spectrum_collision_energy(spectrum) == collision_energy
+    )
+
+
+def check_ms1_spectrum(spectrum: MSSpectrum) -> bool:
+    """Checks whether a spectrum is of MS level 1."""
+    return spectrum.getMSLevel() == 1

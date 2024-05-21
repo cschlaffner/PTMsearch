@@ -1,4 +1,5 @@
 from test.spectra import (
+    COLLISION_ENERGY_HIGHER,
     COLLISION_ENERGY_LOWER,
     spectrum_ms1,
     spectrum_ms2_higher_energy,
@@ -10,7 +11,7 @@ import pytest
 from _pytest.fixtures import SubRequest
 from pyopenms import MSExperiment, MSSpectrum, Precursor
 
-from src.mzml_processing.extraction import extract_lower_energy_windows
+from src.mzml_processing.extraction import ScanWindowExtractor
 
 
 def spectra_ms1() -> List[MSSpectrum]:
@@ -84,5 +85,9 @@ def test_extract_lower_energy(
     exp_input = request.getfixturevalue(exp_input_fixture)
     exp_output = request.getfixturevalue(exp_output_fixture)
 
-    result = extract_lower_energy_windows(exp_input, COLLISION_ENERGY_LOWER)
+    extractor = ScanWindowExtractor(
+        COLLISION_ENERGY_LOWER,
+        COLLISION_ENERGY_HIGHER,
+    )
+    result = extractor.extract_ms1_and_lower_energy_windows(exp_input)
     assert result == exp_output

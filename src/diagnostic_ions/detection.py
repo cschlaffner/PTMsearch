@@ -1,12 +1,12 @@
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import List, Tuple, Union
 
 import numpy as np
 import pandas as pd
 from pyopenms import MSSpectrum
 
-from src.mzml_processing.utils import get_spectrum_collision_energy
+from src.mzml_processing.utils import check_collision_energy_ms2_spectrum
 
 MassToleranceUnit = Enum("MassToleranceUnit", ["ppm", "Da"])
 
@@ -67,9 +67,8 @@ class DiagnosticIonDetector:
     def _validate_spectrum(self, spectrum: MSSpectrum) -> None:
         """Validates that a spectrum is of MS level 2 and with higher collision energy in order
         to extract diagnostic ions from it."""
-        assert (
-            spectrum.getMSLevel() == 2
-            and get_spectrum_collision_energy(spectrum) == self.higher_collision_energy
+        assert check_collision_energy_ms2_spectrum(
+            spectrum, self.higher_collision_energy
         ), "Spectrum for diagnostic ion extraction must be a higher-energy MS2 scan."
 
     def extract_diagnostic_ions_for_spectrum(

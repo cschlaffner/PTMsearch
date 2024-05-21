@@ -1,45 +1,79 @@
 from argparse import ArgumentParser
 from pathlib import Path
-from typing import Union
+from typing import Callable, Union
 
 from pyopenms import MSExperiment, MSSpectrum, MzMLFile
 
 from src.config.config import Config
 from src.mzml_processing.utils import (
+    check_collision_energy_ms2_spectrum,
+    check_ms1_spectrum,
     get_diann_compatible_mzml_output_file,
-    get_spectrum_collision_energy,
 )
 
 OUTPUT_SUFFIX_LOWER_ENERGY = "_lower_energy.mzML"
 
 
-def check_ms1_or_low_energy_spectrum(
-    spectrum: MSSpectrum, lower_collision_energy: Union[float, int]
-) -> bool:
-    return (
-        spectrum.getMSLevel() == 1
-        or get_spectrum_collision_energy(spectrum) == lower_collision_energy
-    )
+class ScanWindowExtractor:
+    def __init__(
+        self,
+        lower_collision_energy: Union[float, int],
+        higher_collision_energy: Union[float, int],
+    ) -> None:
+        self.lower_collision_energy = lower_collision_energy
+        self.higher_collision_energy = higher_collision_energy
+
+    def _check_ms1_or_lower_energy_spectrum(self, spectrum: MSSpectrum) -> bool:
+        return check_ms1_spectrum(spectrum) or check_collision_energy_ms2_spectrum(
+            spectrum, self.lower_collision_energy
+        )
+
+    def _check_ms1_or_higher_energy_spectrum(self, spectrum: MSSpectrum) -> bool:
+        return check_ms1_spectrum(spectrum) or check_collision_energy_ms2_spectrum(
+            spectrum, self.higher_collision_energy
+        )
+
+    def _check_higher_energy_spectrum(self, spectrum: MSSpectrum) -> bool:
+        return check_collision_energy_ms2_spectrum(
+            spectrum, self.higher_collision_energy
+        )
+
+    def _extract_windows_for_criterion(
+        self, exp: MSExperiment, filtering_criterion: Callable[[MSSpectrum], bool]
+    ) -> MSExperiment:
+        """Extracts all scan windows that fullfil the criterion to a second MSExperiment"""
+        spectra = exp.getSpectra()
+
+        extracted_spectra = [
+            spectrum for spectrum in spectra if filtering_criterion(spectrum)
+        ]
+
+        output_exp = MSExperiment()
+        output_exp.setSpectra(extracted_spectra)
+        return output_exp
+
+    def extract_ms1_and_lower_energy_windows(self, exp: MSExperiment) -> MSExperiment:
+        """Extracts all lower-energy and MS1 scan windows to a second MSExperiment"""
+        return self._extract_windows_for_criterion(
+            exp, self._check_ms1_or_lower_energy_spectrum
+        )
+
+    def extract_ms1_and_higher_energy_windows(self, exp: MSExperiment) -> MSExperiment:
+        """Extracts all higher-energy and MS1 scan windows to a second MSExperiment"""
+        return self._extract_windows_for_criterion(
+            exp, self._check_ms1_or_higher_energy_spectrum
+        )
+
+    def extract_higher_energy_windows(self, exp: MSExperiment) -> MSExperiment:
+        """Extracts all higher-energy MS2 scan windows to a second MSExperiment"""
+        return self._extract_windows_for_criterion(
+            exp, self._check_higher_energy_spectrum
+        )
 
 
-def extract_lower_energy_windows(
-    exp: MSExperiment, lower_collision_energy: Union[float, int]
-) -> MSExperiment:
-    """Extracts all lower-energy and MS1 scan windows to a second MSExperiment"""
-    spectra = exp.getSpectra()
-
-    extracted_spectra = [
-        spectrum
-        for spectrum in spectra
-        if check_ms1_or_low_energy_spectrum(spectrum, lower_collision_energy)
-    ]
-
-    output_exp = MSExperiment()
-    output_exp.setSpectra(extracted_spectra)
-    return output_exp
-
-
-def extract_and_store_lower_energy_windows(mzml_path: Path, config_path: Path) -> None:
+def extract_and_store_ms1_and_lower_energy_windows(
+    mzml_path: Path, config_path: Path
+) -> None:
     """Given an mzML file with data consisting of higher- and lower-energy scan windows,
     create an mzML file that contains only the lower-energy and MS1 windows.
     Implementation loosely based on
@@ -51,7 +85,11 @@ def extract_and_store_lower_energy_windows(mzml_path: Path, config_path: Path) -
     exp = MSExperiment()
     MzMLFile().load(str(mzml_path), exp)
 
-    output_exp = extract_lower_energy_windows(exp, config.lower_collision_energy)
+    extractor = ScanWindowExtractor(
+        config.lower_collision_energy, config.higher_collision_energy
+    )
+
+    output_exp = extractor.extract_ms1_and_lower_energy_windows(exp)
 
     output_file = get_diann_compatible_mzml_output_file()
     output_file.store(str(output_path), output_exp)
@@ -71,4 +109,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    extract_and_store_lower_energy_windows(Path(args.mzml_path), Path(args.config_path))
+    extract_and_store_ms1_and_lower_energy_windows(
+        Path(args.mzml_path), Path(args.config_path)
+    )
