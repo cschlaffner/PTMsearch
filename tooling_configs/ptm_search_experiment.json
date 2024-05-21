@@ -2,7 +2,7 @@
     "lower_collision_energy": 30,
     "higher_collision_energy": 50,
     "known_diagnostic_ions_file": "src/diagnostic_ions/known_ions.csv",
-    "diagnostic_ions_mass_tolerance": 0.0,
-    "has_noisy_higher_energy_spectra": true,
+    "diagnostic_ions_mass_tolerance": 5.0,
+    "diagnostic_ions_mass_tolerance_unit": "ppm",
     "intensity_threshold": 10000.0
 }
