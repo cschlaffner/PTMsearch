@@ -128,17 +128,21 @@ class DiagnosticIonDetector:
 
             detected_peaks_mz = spectrum_mz[lower_border:higher_border]
             detected_peaks_intensities = intensities[lower_border:higher_border]
-            num_hits = len(detected_peaks_mz)
+            if len(detected_peaks_mz) == 0:
+                continue
 
+            max_peak_idx = np.argmax(detected_peaks_intensities)
+            max_peak_mz = detected_peaks_mz[max_peak_idx]
+            max_peak_intensity = detected_peaks_intensities[max_peak_idx]
             detected_ions_dfs.append(
                 pd.DataFrame(
                     {
-                        "spectrum_id": np.repeat(spectrum.getNativeID(), num_hits),
-                        "amino_acid": np.repeat(known_ion.amino_acid, num_hits),
-                        "mod_name": np.repeat(known_ion.mod_name, num_hits),
-                        "theoretical_mz": np.repeat(known_ion.mz, num_hits),
-                        "detected_mz": detected_peaks_mz,
-                        "detected_intensity": detected_peaks_intensities,
+                        "spectrum_id": [spectrum.getNativeID()],
+                        "amino_acid": [known_ion.amino_acid],
+                        "mod_name": [known_ion.mod_name],
+                        "theoretical_mz": [known_ion.mz],
+                        "detected_mz": [max_peak_mz],
+                        "detected_intensity": [max_peak_intensity],
                     }
                 ),
             )
