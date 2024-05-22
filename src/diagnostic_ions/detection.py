@@ -2,7 +2,7 @@ import datetime
 from enum import Enum
 from pathlib import Path
 from time import time
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, cast
 
 import numpy as np
 import pandas as pd
@@ -77,8 +77,10 @@ class DiagnosticIonDetector:
         )
 
     def _validate_spectrum(self, spectrum: MSSpectrum) -> None:
-        """Validates that a spectrum is of MS level 2 and with higher collision energy in order
-        to extract diagnostic ions from it. Also checks that mz and ion arrays match regarding length.
+        """
+        Validates that a spectrum is of MS level 2 and with higher collision
+        energy in order to extract diagnostic ions from it. Also checks that mz
+        and ion arrays match regarding length.
         """
         spectrum_id = spectrum.getNativeID()
 
@@ -119,9 +121,11 @@ class DiagnosticIonDetector:
         detected_ions_dfs = [empty_df]
         a = time()
         for known_ion in self.known_ions.itertuples():
-            tolerance = self._get_absolute_mass_tolerance(known_ion.mz)
-            lower_border_mz = known_ion.mz - tolerance
-            higher_border_mz = known_ion.mz + tolerance
+            # Casting to please the typechecking
+            known_ion_mz = cast(float, known_ion.mz)
+            tolerance = self._get_absolute_mass_tolerance(known_ion_mz)
+            lower_border_mz = known_ion_mz - tolerance
+            higher_border_mz = known_ion_mz + tolerance
 
             lower_border = np.searchsorted(spectrum_mz, lower_border_mz, side="left")
             higher_border = np.searchsorted(spectrum_mz, higher_border_mz, side="right")
@@ -140,7 +144,7 @@ class DiagnosticIonDetector:
                         "spectrum_id": [spectrum.getNativeID()],
                         "amino_acid": [known_ion.amino_acid],
                         "mod_name": [known_ion.mod_name],
-                        "theoretical_mz": [known_ion.mz],
+                        "theoretical_mz": [known_ion_mz],
                         "detected_mz": [max_peak_mz],
                         "detected_intensity": [max_peak_intensity],
                     }
