@@ -4,5 +4,5 @@
     "known_diagnostic_ions_file": "src/diagnostic_ions/known_ions.csv",
     "diagnostic_ions_mass_tolerance": 5.0,
     "diagnostic_ions_mass_tolerance_unit": "ppm",
-    "intensity_threshold": 10000.0
+    "snr_threshold": 2
 }

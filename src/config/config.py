@@ -11,7 +11,7 @@ class Config:
     known_diagnostic_ions_file: str
     diagnostic_ions_mass_tolerance: Union[float, int]
     diagnostic_ions_mass_tolerance_unit: str
-    intensity_threshold: Union[float, int]
+    snr_threshold: Union[float, int]
 
     @classmethod
     def from_path(cls, config_path: Path):
