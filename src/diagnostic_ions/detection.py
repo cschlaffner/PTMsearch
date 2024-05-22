@@ -1,11 +1,12 @@
+import datetime
 from enum import Enum
 from pathlib import Path
+from time import time
 from typing import List, Tuple, Union
 
 import numpy as np
 import pandas as pd
 from pyopenms import MSSpectrum
-
 from src.mzml_processing.utils import check_collision_energy_ms2_spectrum
 
 MassToleranceUnit = Enum("MassToleranceUnit", ["ppm", "Da"])
@@ -29,6 +30,11 @@ class DiagnosticIonDetector:
         self.higher_collision_energy = higher_collision_energy
 
         self._validate_config()
+
+        # TODO: delete
+        self.search_times = []
+        self.concat_times = []
+        self.final_concat_time = []
 
     def _validate_config(self):
         assert np.array_equal(
@@ -82,47 +88,55 @@ class DiagnosticIonDetector:
 
         spectrum_mz, intensities = self._remove_noise(spectrum_mz, intensities)
 
-        detected_ions_df = pd.DataFrame(
-            columns=[
-                "spectrum_id",
-                "amino_acid",
-                "mod_name",
-                "theoretical_mz",
-                "detected_mz",
-                "detected_intensity",
-            ]
-        )
-
+        detected_ions_dfs = [
+            pd.DataFrame(
+                columns=[
+                    "spectrum_id",
+                    "amino_acid",
+                    "mod_name",
+                    "theoretical_mz",
+                    "detected_mz",
+                    "detected_intensity",
+                ]
+            )
+        ]
+        a = time()
         for known_ion in self.known_ions.itertuples():
-            detected_peaks_mask = [
-                np.isclose(
-                    known_ion.mz,
-                    peak_mz,
-                    rtol=0,
-                    atol=self._get_absolute_mass_tolerance(known_ion.mz),
-                )
-                for peak_mz in spectrum_mz
-            ]
-            detected_peaks_mz = spectrum_mz[detected_peaks_mask]
-            detected_peaks_intensities = intensities[detected_peaks_mask]
+            tolerance = self._get_absolute_mass_tolerance(known_ion.mz)
+            lower_border_mz = known_ion.mz - tolerance
+            higher_border_mz = known_ion.mz + tolerance
+
+            lower_border = np.searchsorted(spectrum_mz, lower_border_mz, side="left")
+            higher_border = np.searchsorted(spectrum_mz, higher_border_mz, side="right")
+
+            detected_peaks_mz = spectrum_mz[lower_border:higher_border]
+            detected_peaks_intensities = intensities[lower_border:higher_border]
             num_hits = len(detected_peaks_mz)
 
-            detected_ions_df = pd.concat(
-                [
-                    detected_ions_df,
-                    pd.DataFrame(
-                        {
-                            "spectrum_id": np.repeat(spectrum.getNativeID(), num_hits),
-                            "amino_acid": np.repeat(known_ion.amino_acid, num_hits),
-                            "mod_name": np.repeat(known_ion.mod_name, num_hits),
-                            "theoretical_mz": np.repeat(known_ion.mz, num_hits),
-                            "detected_mz": detected_peaks_mz,
-                            "detected_intensity": detected_peaks_intensities,
-                        }
-                    ),
-                ],
-                ignore_index=True,
+            detected_ions_dfs.append(
+                pd.DataFrame(
+                    {
+                        "spectrum_id": np.repeat(spectrum.getNativeID(), num_hits),
+                        "amino_acid": np.repeat(known_ion.amino_acid, num_hits),
+                        "mod_name": np.repeat(known_ion.mod_name, num_hits),
+                        "theoretical_mz": np.repeat(known_ion.mz, num_hits),
+                        "detected_mz": detected_peaks_mz,
+                        "detected_intensity": detected_peaks_intensities,
+                    }
+                ),
             )
+
+        b = time()
+        self.search_times.append(b - a)
+
+        c = time()
+        detected_ions_df = pd.concat(
+            detected_ions_dfs,
+            ignore_index=True,
+        )
+
+        d = time()
+        self.concat_times.append(d - c)
 
         return detected_ions_df
 
@@ -136,12 +150,25 @@ class DiagnosticIonDetector:
         self, spectra: List[MSSpectrum]
     ) -> pd.DataFrame:
         """Extract modification names for the provided spectra."""
-        return pd.concat(
-            [
-                self.extract_diagnostic_ions_for_spectrum(spectrum)
-                for spectrum in spectra
-            ],
+        results = []
+        a = time()
+        for i, spectrum in enumerate(spectra):
+            results.append(self.extract_diagnostic_ions_for_spectrum(spectrum))
+            if i % 1000 == 0:
+                print(f"{datetime.datetime.now()}: {i} spectra analyzed", flush=True)
+        b = time()
+
+        print(f"average search time: {np.mean(self.search_times)}", flush=True)
+        print(f"average concat time: {np.mean(self.concat_times)}", flush=True)
+        c = time()
+        result = pd.concat(
+            results,
             ignore_index=True,
         )
+        d = time()
+
+        print(f"total search time: {b - a}", flush=True)
+        print(f"final concat time: {d - c}", flush=True)
+        return result
 
     # TODO: update docs to the df using version, make sure to do duplicate handling afterwards!
