@@ -126,7 +126,7 @@ all_ions_from_spectrum_exact_matching_df = pd.DataFrame(
     }
 )
 
-signle_higher_peak_ion_df = pd.DataFrame(
+single_higher_peak_ion_df = pd.DataFrame(
     {
         "spectrum_id": [spectrum_native_id],
         "amino_acid": ["a_1"],
@@ -331,7 +331,7 @@ def test_detect_single_higher_peak_applied_snr_threshold(
     assert_detection_results_correct(
         detector_exact_matching_snr_threshold,
         higher_energy_spectrum_single_higher_peak,
-        signle_higher_peak_ion_df,
+        single_higher_peak_ion_df,
     )
 
 
