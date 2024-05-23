@@ -16,14 +16,18 @@ from src.diagnostic_ions.detection import DiagnosticIonDetector
 
 # ------------------------ Setup: values ---------------------------------------
 
-intensity_threshold = 1000
+snr_threshold = 2
+snr_threshold_higher = 3
 known_ions_file = "test/mock_ions.csv"
-mass_tolerance = 5
+mass_tolerance_ppm = 5
 unit_ppm = "ppm"
+mass_tolerance_da = 0.0005
+unit_da = "Da"
 
 spectrum_native_id = "s_1"
 spectrum_2_native_id = "s_2"
-peak = 2000.0
+peak = 10000.0
+peak_higher = 1000000.0
 noise = 500.0
 mz_mod_1 = 100.0
 mz_mod_2 = 200.0
@@ -38,51 +42,62 @@ mz_mod_1_threshold_border_lower = 99.99950000001
 
 
 mz_intensities_empty = (np.array([]), np.array([]))
-mz_intensities_only_ions = (
-    np.array([mz_mod_1, mz_mod_2, mz_mod_3]),
-    np.array([peak, peak, peak]),
-)
 mz_intensities_noise_at_ion_positions = (
     np.array([mz_mod_1, mz_mod_2, mz_mod_3]),
     np.array([noise, noise, noise]),
-)
-mz_intensities_irrelevant_peaks = (
-    np.array([400.0, 500.0, 600.0]),
-    np.array([peak, peak, peak]),
 )
 mz_intensities_ions_additional_noise = (
     np.array([mz_mod_1, 150.0, 170.0, mz_mod_2, 220.0, mz_mod_3, 400.0]),
     np.array([peak, noise, noise, peak, noise, peak, noise]),
 )
 
-mz_intensities_ions_additional_noise_irrelevant_peaks = (
+mz_intensities_single_higher_peak_additional_noise = (
     np.array([mz_mod_1, 150.0, 170.0, mz_mod_2, 220.0, mz_mod_3, 400.0]),
-    np.array([peak, peak, noise, peak, noise, peak, peak]),
+    np.array([peak, noise, noise, peak_higher, noise, peak, noise]),
 )
 
-mz_intensities_below_threshold_peak = (
-    np.array([mz_mod_1]),
-    np.array([noise]),
+mz_intensities_ions_additional_noise_irrelevant_peaks = (
+    np.array(
+        [
+            mz_mod_1,
+            150.0,
+            170.0,
+            mz_mod_2,
+            220.0,
+            mz_mod_3,
+            400.0,
+            500.0,
+            600.0,
+            700.0,
+            800.0,
+        ]
+    ),
+    np.array([peak, peak, noise, peak, noise, peak, peak, noise, noise, noise, noise]),
 )
 
-mz_intensities_within_ppm_tolerance = (
+mz_intensities_within_mass_tolerance = (
     np.array([mz_mod_1_threshold_border_higher]),
     np.array([peak]),
 )
 
-mz_intensities_within_ppm_tolerance_multiple = (
+mz_intensities_within_mass_tolerance_multiple = (
     np.array([mz_mod_1_threshold_border_lower, mz_mod_1_threshold_border_higher]),
-    np.array([peak, peak]),
+    np.array([peak, peak_higher]),
+)
+
+mz_intensities_within_mass_tolerance_additional_noise = (
+    np.array([mz_mod_1_threshold_border_higher, 200.0, 300.0]),
+    np.array([peak, noise, noise]),
 )
 
 mz_intensities_only_mod1 = (
-    np.array([mz_mod_1]),
-    np.array([peak]),
+    np.array([mz_mod_1, 150.0, 20.0]),
+    np.array([peak, noise, noise]),
 )
 
 mz_intensities_only_mod12 = (
-    np.array([mz_mod_1, mz_mod_2]),
-    np.array([peak, peak]),
+    np.array([mz_mod_1, 150.0, mz_mod_2, 250.0, 400.0]),
+    np.array([peak, noise, peak, noise, noise]),
 )
 
 
@@ -111,18 +126,29 @@ all_ions_from_spectrum_exact_matching_df = pd.DataFrame(
     }
 )
 
-below_threshold_ion_df = pd.DataFrame(
+signle_higher_peak_ion_df = pd.DataFrame(
+    {
+        "spectrum_id": [spectrum_native_id],
+        "amino_acid": ["a_1"],
+        "mod_name": ["m_2"],
+        "theoretical_mz": [mz_mod_2],
+        "detected_mz": [mz_mod_2],
+        "detected_intensity": [peak_higher],
+    }
+)
+
+higher_threshold_ion_df = pd.DataFrame(
     {
         "spectrum_id": [spectrum_native_id],
         "amino_acid": ["a_1"],
         "mod_name": ["m_1"],
         "theoretical_mz": [mz_mod_1],
         "detected_mz": [mz_mod_1],
-        "detected_intensity": [noise],
+        "detected_intensity": [peak_higher],
     }
 )
 
-within_ppm_tolerance_df = pd.DataFrame(
+within_mass_tolerance_df = pd.DataFrame(
     {
         "spectrum_id": [spectrum_native_id],
         "amino_acid": ["a_1"],
@@ -133,17 +159,16 @@ within_ppm_tolerance_df = pd.DataFrame(
     }
 )
 
-within_ppm_tolerance_multiple_df = pd.DataFrame(
+within_mass_tolerance_multiple_df = pd.DataFrame(
     {
-        "spectrum_id": [spectrum_native_id, spectrum_native_id],
-        "amino_acid": ["a_1", "a_1"],
-        "mod_name": ["m_1", "m_1"],
-        "theoretical_mz": [mz_mod_1, mz_mod_1],
+        "spectrum_id": [spectrum_native_id],
+        "amino_acid": ["a_1"],
+        "mod_name": ["m_1"],
+        "theoretical_mz": [mz_mod_1],
         "detected_mz": [
-            mz_mod_1_threshold_border_lower,
             mz_mod_1_threshold_border_higher,
         ],
-        "detected_intensity": [peak, peak],
+        "detected_intensity": [peak_higher],
     }
 )
 
@@ -167,33 +192,66 @@ multiple_spectra_df = pd.DataFrame(
 
 
 @pytest.fixture
-def detector_exact_matching() -> DiagnosticIonDetector:
+def detector_exact_matching_snr_threshold() -> DiagnosticIonDetector:
     return DiagnosticIonDetector(
         known_ions_file,
         0,
         unit_ppm,
-        intensity_threshold,
+        snr_threshold,
         COLLISION_ENERGY_HIGHER,
     )
 
 
 @pytest.fixture
-def detector_with_ppm_tolerance() -> DiagnosticIonDetector:
+def detector_exact_matching_higher_snr_threshold() -> DiagnosticIonDetector:
     return DiagnosticIonDetector(
         known_ions_file,
-        mass_tolerance,
+        0,
         unit_ppm,
-        intensity_threshold,
+        snr_threshold_higher,
         COLLISION_ENERGY_HIGHER,
     )
 
 
 @pytest.fixture
-def detector_exact_matching_no_intensity_threshold() -> DiagnosticIonDetector:
+def detector_exact_matching_no_snr_threshold() -> DiagnosticIonDetector:
     return DiagnosticIonDetector(
         known_ions_file,
         0,
         unit_ppm,
+        0,
+        COLLISION_ENERGY_HIGHER,
+    )
+
+
+@pytest.fixture
+def detector_with_ppm_tolerance_snr_threshold() -> DiagnosticIonDetector:
+    return DiagnosticIonDetector(
+        known_ions_file,
+        mass_tolerance_ppm,
+        unit_ppm,
+        snr_threshold,
+        COLLISION_ENERGY_HIGHER,
+    )
+
+
+@pytest.fixture
+def detector_with_ppm_tolerance_no_snr_threshold() -> DiagnosticIonDetector:
+    return DiagnosticIonDetector(
+        known_ions_file,
+        mass_tolerance_ppm,
+        unit_ppm,
+        0,
+        COLLISION_ENERGY_HIGHER,
+    )
+
+
+@pytest.fixture
+def detector_with_da_tolerance_no_snr_threshold() -> DiagnosticIonDetector:
+    return DiagnosticIonDetector(
+        known_ions_file,
+        mass_tolerance_da,
+        unit_da,
         0,
         COLLISION_ENERGY_HIGHER,
     )
@@ -211,17 +269,15 @@ def assert_detection_results_correct(
     )
 
 
-# ------------------------ Tests: ion detection single spectrum ---------------------------------------
+# ------------------------ Tests: ion detection SNR threshold ---------------------------------------
 
 
 @pytest.fixture(
     params=[
-        mz_intensities_only_ions,
         mz_intensities_ions_additional_noise,
         mz_intensities_ions_additional_noise_irrelevant_peaks,
     ],
     ids=[
-        "only_ions",
         "ions_additional_noise",
         "ions_additional_noise_irrelevant_peaks",
     ],
@@ -232,16 +288,50 @@ def higher_energy_spectrum_exact_matching(request: SubRequest) -> MSSpectrum:
     )
 
 
-def test_detect_ions_spectrum_exact_matching_applied_intensity_threshold(
+def test_detect_ions_spectrum_exact_matching_applied_snr_threshold(
     higher_energy_spectrum_exact_matching: MSSpectrum,
-    detector_exact_matching: DiagnosticIonDetector,
+    detector_exact_matching_snr_threshold: DiagnosticIonDetector,
 ) -> None:
     """The diagnostic ions should be detected in the spectrum, additional noise
     or peaks at irrelevant positions should be ignored."""
     assert_detection_results_correct(
-        detector_exact_matching,
+        detector_exact_matching_snr_threshold,
         higher_energy_spectrum_exact_matching,
         all_ions_from_spectrum_exact_matching_df,
+    )
+
+
+def test_exact_matching_higher_snr_threshold(
+    higher_energy_spectrum_exact_matching: MSSpectrum,
+    detector_exact_matching_higher_snr_threshold: DiagnosticIonDetector,
+) -> None:
+    """Applying a higher SNR threshold should lead to no detections if the
+    spectrum does not pass the SNR threshold anymore."""
+    assert_detection_results_correct(
+        detector_exact_matching_higher_snr_threshold,
+        higher_energy_spectrum_exact_matching,
+        empty_results_df,
+    )
+
+
+@pytest.fixture
+def higher_energy_spectrum_single_higher_peak() -> MSSpectrum:
+    return spectrum_ms2_higher_energy(
+        native_id=spectrum_native_id,
+        peaks_mz_intensities=mz_intensities_single_higher_peak_additional_noise,
+    )
+
+
+def test_detect_single_higher_peak_applied_snr_threshold(
+    higher_energy_spectrum_single_higher_peak: MSSpectrum,
+    detector_exact_matching_snr_threshold: DiagnosticIonDetector,
+) -> None:
+    """When a peak is much higher than the others, the lower peaks should
+    not be detected even if the are higher than some other peaks."""
+    assert_detection_results_correct(
+        detector_exact_matching_snr_threshold,
+        higher_energy_spectrum_single_higher_peak,
+        signle_higher_peak_ion_df,
     )
 
 
@@ -249,12 +339,10 @@ def test_detect_ions_spectrum_exact_matching_applied_intensity_threshold(
     params=[
         mz_intensities_empty,
         mz_intensities_noise_at_ion_positions,
-        mz_intensities_irrelevant_peaks,
     ],
     ids=[
         "empty",
         "noise_at_ion_positions",
-        "irrelevant_peaks",
     ],
 )
 def higher_energy_spectrum_no_ions(request: SubRequest) -> MSSpectrum:
@@ -263,80 +351,94 @@ def higher_energy_spectrum_no_ions(request: SubRequest) -> MSSpectrum:
     )
 
 
-def test_no_ions_in_spectrum_applied_intensity_threshold(
+def test_no_ions_in_spectrum_applied_snr_threshold(
     higher_energy_spectrum_no_ions: MSSpectrum,
-    detector_exact_matching: DiagnosticIonDetector,
+    detector_exact_matching_snr_threshold: DiagnosticIonDetector,
 ) -> None:
     """If there are no ions in the spectra, no ions should be detected. Further,
     empty m/z and intensity arrays should not lead to errors."""
     assert_detection_results_correct(
-        detector_exact_matching, higher_energy_spectrum_no_ions, empty_results_df
+        detector_exact_matching_snr_threshold,
+        higher_energy_spectrum_no_ions,
+        empty_results_df,
     )
+
+
+# ------------------------ Tests: ion detection mass tolerance ---------------------------------------
 
 
 @pytest.fixture
-def higher_energy_spectrum_below_threshold() -> MSSpectrum:
+def higher_energy_spectrum_within_mass_tolerance() -> MSSpectrum:
     return spectrum_ms2_higher_energy(
         native_id=spectrum_native_id,
-        peaks_mz_intensities=mz_intensities_below_threshold_peak,
-    )
-
-
-def test_lower_intensity_peak_detected_without_intensity_threshold(
-    higher_energy_spectrum_below_threshold: MSSpectrum,
-    detector_exact_matching_no_intensity_threshold: DiagnosticIonDetector,
-) -> None:
-    """When no intensity threshold is applied, peaks with a lower intensity at the
-    ion positions are detected."""
-    assert_detection_results_correct(
-        detector_exact_matching_no_intensity_threshold,
-        higher_energy_spectrum_below_threshold,
-        below_threshold_ion_df,
-    )
-
-
-@pytest.fixture
-def higher_energy_spectrum_within_ppm_tolerance() -> MSSpectrum:
-    return spectrum_ms2_higher_energy(
-        native_id=spectrum_native_id,
-        peaks_mz_intensities=mz_intensities_within_ppm_tolerance,
+        peaks_mz_intensities=mz_intensities_within_mass_tolerance,
     )
 
 
 def test_within_ppm_tolerance_detected(
-    higher_energy_spectrum_within_ppm_tolerance: MSSpectrum,
-    detector_with_ppm_tolerance: DiagnosticIonDetector,
+    higher_energy_spectrum_within_mass_tolerance: MSSpectrum,
+    detector_with_ppm_tolerance_no_snr_threshold: DiagnosticIonDetector,
 ) -> None:
     """When a ppm tolerance is set, peaks within the tolerance range
     should be detected."""
     assert_detection_results_correct(
-        detector_with_ppm_tolerance,
-        higher_energy_spectrum_within_ppm_tolerance,
-        within_ppm_tolerance_df,
+        detector_with_ppm_tolerance_no_snr_threshold,
+        higher_energy_spectrum_within_mass_tolerance,
+        within_mass_tolerance_df,
     )
 
 
-# TODO: add test for Da tolerance
+def test_within_da_tolerance_detected(
+    higher_energy_spectrum_within_mass_tolerance: MSSpectrum,
+    detector_with_da_tolerance_no_snr_threshold: DiagnosticIonDetector,
+) -> None:
+    """When a Da tolerance is set, peaks within the tolerance range
+    should be detected."""
+    assert_detection_results_correct(
+        detector_with_da_tolerance_no_snr_threshold,
+        higher_energy_spectrum_within_mass_tolerance,
+        within_mass_tolerance_df,
+    )
 
 
 @pytest.fixture
-def higher_energy_spectrum_within_ppm_tolerance_multiple() -> MSSpectrum:
+def higher_energy_spectrum_within_mass_tolerance_multiple() -> MSSpectrum:
     return spectrum_ms2_higher_energy(
         native_id=spectrum_native_id,
-        peaks_mz_intensities=mz_intensities_within_ppm_tolerance_multiple,
+        peaks_mz_intensities=mz_intensities_within_mass_tolerance_multiple,
     )
 
 
 def test_within_ppm_tolerance_multiple_detected(
-    higher_energy_spectrum_within_ppm_tolerance_multiple: MSSpectrum,
-    detector_with_ppm_tolerance: DiagnosticIonDetector,
+    higher_energy_spectrum_within_mass_tolerance_multiple: MSSpectrum,
+    detector_with_ppm_tolerance_no_snr_threshold: DiagnosticIonDetector,
 ) -> None:
     """When a ppm tolerance is set, and multiple peaks are within the tolerance
-    of a known ion m/z, all those peaks should be detected."""
+    of a known ion m/z, the highest peak should be detected."""
     assert_detection_results_correct(
-        detector_with_ppm_tolerance,
-        higher_energy_spectrum_within_ppm_tolerance_multiple,
-        within_ppm_tolerance_multiple_df,
+        detector_with_ppm_tolerance_no_snr_threshold,
+        higher_energy_spectrum_within_mass_tolerance_multiple,
+        within_mass_tolerance_multiple_df,
+    )
+
+
+@pytest.fixture
+def higher_energy_spectrum_within_ppm_tolerance_additional_noise() -> MSSpectrum:
+    return spectrum_ms2_higher_energy(
+        native_id=spectrum_native_id,
+        peaks_mz_intensities=mz_intensities_within_mass_tolerance_additional_noise,
+    )
+
+
+def test_within_ppm_tolerance_detected_additional_noise(
+    higher_energy_spectrum_within_ppm_tolerance_additional_noise: MSSpectrum,
+    detector_with_ppm_tolerance_snr_threshold: DiagnosticIonDetector,
+) -> None:
+    """Tolerance should also work simulaneously with noise reduction."""
+    assert_detection_results_correct(
+        detector_with_ppm_tolerance_snr_threshold,
+        higher_energy_spectrum_within_ppm_tolerance_additional_noise,
+        within_mass_tolerance_df,
     )
 
 
@@ -350,11 +452,13 @@ def ms1_spectrum() -> MSSpectrum:
 
 def test_ion_detection_ms1_fails(
     ms1_spectrum: MSSpectrum,
-    detector_exact_matching: DiagnosticIonDetector,
+    detector_exact_matching_snr_threshold: DiagnosticIonDetector,
 ) -> None:
     """Diagnostic ion detection for an MS1 scan should fail."""
     with pytest.raises(AssertionError, match="MS2"):
-        detector_exact_matching.extract_diagnostic_ions_for_spectrum(ms1_spectrum)
+        detector_exact_matching_snr_threshold.extract_diagnostic_ions_for_spectrum(
+            ms1_spectrum
+        )
 
 
 @pytest.fixture
@@ -364,11 +468,11 @@ def lower_energy_spectrum() -> MSSpectrum:
 
 def test_ion_detection_lower_energy_fails(
     lower_energy_spectrum: MSSpectrum,
-    detector_exact_matching: DiagnosticIonDetector,
+    detector_exact_matching_snr_threshold: DiagnosticIonDetector,
 ) -> None:
     """Diagnostic ion detection for a lower-energy MS2 scan should fail."""
     with pytest.raises(AssertionError, match="higher-energy"):
-        detector_exact_matching.extract_diagnostic_ions_for_spectrum(
+        detector_exact_matching_snr_threshold.extract_diagnostic_ions_for_spectrum(
             lower_energy_spectrum
         )
 
@@ -392,12 +496,14 @@ def higher_energy_multiple_spectra_exact_matching() -> List[MSSpectrum]:
 
 def test_detect_ions_multiple_spectra_exact_matching(
     higher_energy_multiple_spectra_exact_matching: List[MSSpectrum],
-    detector_exact_matching: DiagnosticIonDetector,
+    detector_exact_matching_snr_threshold: DiagnosticIonDetector,
 ) -> None:
     """The diagnostic ions should be detected in the spectra and stored with the corresponding
     spectrum id."""
-    detected_ions_df = detector_exact_matching.extract_diagnostic_ions_for_spectra(
-        higher_energy_multiple_spectra_exact_matching
+    detected_ions_df = (
+        detector_exact_matching_snr_threshold.extract_diagnostic_ions_for_spectra(
+            higher_energy_multiple_spectra_exact_matching
+        )
     )
     pd.testing.assert_frame_equal(
         detected_ions_df,
@@ -409,27 +515,31 @@ def test_detect_ions_multiple_spectra_exact_matching(
 
 def test_validate_spectra_successful(
     higher_energy_multiple_spectra_exact_matching: List[MSSpectrum],
-    detector_exact_matching: DiagnosticIonDetector,
+    detector_exact_matching_snr_threshold: DiagnosticIonDetector,
 ) -> None:
     """Validation of a list of higher-energy MS2 spectra should succeed."""
-    detector_exact_matching.validate_diagnostic_ion_spectra(
+    detector_exact_matching_snr_threshold.validate_diagnostic_ion_spectra(
         higher_energy_multiple_spectra_exact_matching
     )
 
 
 def test_validate_MS1_spectra_fails(
     ms1_spectrum: MSSpectrum,
-    detector_exact_matching: DiagnosticIonDetector,
+    detector_exact_matching_snr_threshold: DiagnosticIonDetector,
 ) -> None:
     """Validation of a list of MS1 spectra should fail."""
     with pytest.raises(AssertionError, match="MS2"):
-        detector_exact_matching.validate_diagnostic_ion_spectra([ms1_spectrum])
+        detector_exact_matching_snr_threshold.validate_diagnostic_ion_spectra(
+            [ms1_spectrum]
+        )
 
 
 def test_validate_lower_energy_spectra_fails(
     lower_energy_spectrum: MSSpectrum,
-    detector_exact_matching: DiagnosticIonDetector,
+    detector_exact_matching_snr_threshold: DiagnosticIonDetector,
 ) -> None:
     """Validation of a list of lower-energy spectra should fail."""
     with pytest.raises(AssertionError, match="higher-energy"):
-        detector_exact_matching.validate_diagnostic_ion_spectra([lower_energy_spectrum])
+        detector_exact_matching_snr_threshold.validate_diagnostic_ion_spectra(
+            [lower_energy_spectrum]
+        )
