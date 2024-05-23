@@ -90,12 +90,12 @@ mz_intensities_within_mass_tolerance_additional_noise = (
     np.array([peak, noise, noise]),
 )
 
-mz_intensities_only_mod1 = (
+mz_intensities_only_mod1_additional_noise = (
     np.array([mz_mod_1, 150.0, 20.0]),
     np.array([peak, noise, noise]),
 )
 
-mz_intensities_only_mod12 = (
+mz_intensities_only_mod12_additional_noise = (
     np.array([mz_mod_1, 150.0, mz_mod_2, 250.0, 400.0]),
     np.array([peak, noise, peak, noise, noise]),
 )
@@ -133,17 +133,6 @@ single_higher_peak_ion_df = pd.DataFrame(
         "mod_name": ["m_2"],
         "theoretical_mz": [mz_mod_2],
         "detected_mz": [mz_mod_2],
-        "detected_intensity": [peak_higher],
-    }
-)
-
-higher_threshold_ion_df = pd.DataFrame(
-    {
-        "spectrum_id": [spectrum_native_id],
-        "amino_acid": ["a_1"],
-        "mod_name": ["m_1"],
-        "theoretical_mz": [mz_mod_1],
-        "detected_mz": [mz_mod_1],
         "detected_intensity": [peak_higher],
     }
 )
@@ -355,7 +344,7 @@ def test_no_ions_in_spectrum_applied_snr_threshold(
     higher_energy_spectrum_no_ions: MSSpectrum,
     detector_exact_matching_snr_threshold: DiagnosticIonDetector,
 ) -> None:
-    """If there are no ions in the spectra, no ions should be detected. Further,
+    """If there are no ions in the spectra (only noise), no ions should be detected. Further,
     empty m/z and intensity arrays should not lead to errors."""
     assert_detection_results_correct(
         detector_exact_matching_snr_threshold,
@@ -485,11 +474,11 @@ def higher_energy_multiple_spectra_exact_matching() -> List[MSSpectrum]:
     return [
         spectrum_ms2_higher_energy(
             native_id=spectrum_native_id,
-            peaks_mz_intensities=mz_intensities_only_mod12,
+            peaks_mz_intensities=mz_intensities_only_mod12_additional_noise,
         ),
         spectrum_ms2_higher_energy(
             native_id=spectrum_2_native_id,
-            peaks_mz_intensities=mz_intensities_only_mod1,
+            peaks_mz_intensities=mz_intensities_only_mod1_additional_noise,
         ),
     ]
 

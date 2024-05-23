@@ -89,10 +89,6 @@ class DiagnosticIonDetector:
         ), f"Spectrum {spectrum_id} for diagnostic ion extraction must be a higher-energy MS2 scan."
         spectrum_mz, intensities = spectrum.get_peaks()
 
-        assert len(spectrum_mz) == len(
-            intensities
-        ), f"Mismatch between mz and intensity array for spectrum {spectrum_id}."
-
     def extract_diagnostic_ions_for_spectrum(
         self, spectrum: MSSpectrum
     ) -> pd.DataFrame:
