@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Callable, Union
 
 from pyopenms import MSExperiment, MSSpectrum, MzMLFile
-
 from src.config.config import Config
 from src.mzml_processing.utils import (
     check_collision_energy_ms2_spectrum,
@@ -47,6 +46,10 @@ class ScanWindowExtractor:
         extracted_spectra = [
             spectrum for spectrum in spectra if filtering_criterion(spectrum)
         ]
+
+        for i, spectrum in enumerate(extracted_spectra):
+            # TODO: make this more flexible
+            spectrum.setNativeID(f"controllerType=0 controllerNumber=1 scan={i+1}")
 
         output_exp = MSExperiment()
         output_exp.setSpectra(extracted_spectra)
