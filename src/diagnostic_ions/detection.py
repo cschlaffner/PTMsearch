@@ -39,11 +39,11 @@ class DiagnosticIonDetector:
 
     def _validate_config(self):
         assert np.array_equal(
-            self.known_ions.columns, ["amino_acid", "mod_name", "mz"]
+            self.known_ions.columns, ["amino_acid", "mod_name", "type", "mz"]
         ), (
             "Known ions CSV file has wrong format, should include columns: amino_acid",
             "(name of the amino acid that is modified), mod_name (name of the modification),",
-            "and mz (m/z value of the diagnostic ion).",
+            "type (immonium ion, neutral loss or others)) and mz (m/z value of the diagnostic ion).",
         )
         assert self.mass_tolerance_unit in [unit.name for unit in MassToleranceUnit]
 
@@ -87,7 +87,6 @@ class DiagnosticIonDetector:
         assert check_collision_energy_ms2_spectrum(
             spectrum, self.higher_collision_energy
         ), f"Spectrum {spectrum_id} for diagnostic ion extraction must be a higher-energy MS2 scan."
-        spectrum_mz, intensities = spectrum.get_peaks()
 
     def extract_diagnostic_ions_for_spectrum(
         self, spectrum: MSSpectrum
@@ -105,6 +104,7 @@ class DiagnosticIonDetector:
                 "spectrum_id",
                 "amino_acid",
                 "mod_name",
+                "type",
                 "theoretical_mz",
                 "detected_mz",
                 "detected_intensity",
@@ -140,6 +140,7 @@ class DiagnosticIonDetector:
                         "spectrum_id": [spectrum.getNativeID()],
                         "amino_acid": [known_ion.amino_acid],
                         "mod_name": [known_ion.mod_name],
+                        "type": [known_ion.type],
                         "theoretical_mz": [known_ion_mz],
                         "detected_mz": [max_peak_mz],
                         "detected_intensity": [max_peak_intensity],
@@ -171,12 +172,11 @@ class DiagnosticIonDetector:
         self, spectra: List[MSSpectrum]
     ) -> pd.DataFrame:
         """Extract modification names for the provided spectra."""
-        results = []
+
         a = time()
-        for i, spectrum in enumerate(spectra):
-            results.append(self.extract_diagnostic_ions_for_spectrum(spectrum))
-            if i % 1000 == 0:
-                print(f"{datetime.datetime.now()}: {i} spectra analyzed", flush=True)
+        results = [
+            self.extract_diagnostic_ions_for_spectrum(spectrum) for spectrum in spectra
+        ]
         b = time()
 
         print(f"average search time: {np.mean(self.search_times)}", flush=True)
@@ -192,4 +192,4 @@ class DiagnosticIonDetector:
         print(f"final concat time: {d - c}", flush=True)
         return result
 
-    # TODO: update docs to the df using version, make sure to do duplicate handling afterwards!
+    # TODO: update docs to the df using version

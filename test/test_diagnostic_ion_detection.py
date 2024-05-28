@@ -75,9 +75,9 @@ mz_intensities_ions_additional_noise_irrelevant_peaks = (
     np.array([peak, peak, noise, peak, noise, peak, peak, noise, noise, noise, noise]),
 )
 
-mz_intensities_within_mass_tolerance = (
-    np.array([mz_mod_1_threshold_border_higher]),
-    np.array([peak]),
+mz_intensities_within_mass_tolerance_irrelevant_peaks = (
+    np.array([mz_mod_1_threshold_border_higher, 150.0, 400.0]),
+    np.array([peak, peak, peak]),
 )
 
 mz_intensities_within_mass_tolerance_multiple = (
@@ -109,6 +109,7 @@ empty_results_df = pd.DataFrame(
         "spectrum_id",
         "amino_acid",
         "mod_name",
+        "type",
         "theoretical_mz",
         "detected_mz",
         "detected_intensity",
@@ -120,6 +121,7 @@ all_ions_from_spectrum_exact_matching_df = pd.DataFrame(
         "spectrum_id": [spectrum_native_id, spectrum_native_id, spectrum_native_id],
         "amino_acid": ["a_1", "a_1", "a_2"],
         "mod_name": ["m_1", "m_2", "m_3"],
+        "type": ["IM", "NL", "IM"],
         "theoretical_mz": [mz_mod_1, mz_mod_2, mz_mod_3],
         "detected_mz": [mz_mod_1, mz_mod_2, mz_mod_3],
         "detected_intensity": [peak, peak, peak],
@@ -131,6 +133,7 @@ single_higher_peak_ion_df = pd.DataFrame(
         "spectrum_id": [spectrum_native_id],
         "amino_acid": ["a_1"],
         "mod_name": ["m_2"],
+        "type": ["NL"],
         "theoretical_mz": [mz_mod_2],
         "detected_mz": [mz_mod_2],
         "detected_intensity": [peak_higher],
@@ -142,6 +145,7 @@ within_mass_tolerance_df = pd.DataFrame(
         "spectrum_id": [spectrum_native_id],
         "amino_acid": ["a_1"],
         "mod_name": ["m_1"],
+        "type": ["IM"],
         "theoretical_mz": [mz_mod_1],
         "detected_mz": [mz_mod_1_threshold_border_higher],
         "detected_intensity": [peak],
@@ -153,6 +157,7 @@ within_mass_tolerance_multiple_df = pd.DataFrame(
         "spectrum_id": [spectrum_native_id],
         "amino_acid": ["a_1"],
         "mod_name": ["m_1"],
+        "type": ["IM"],
         "theoretical_mz": [mz_mod_1],
         "detected_mz": [
             mz_mod_1_threshold_border_higher,
@@ -170,6 +175,7 @@ multiple_spectra_df = pd.DataFrame(
         ],
         "amino_acid": ["a_1", "a_1", "a_1"],
         "mod_name": ["m_1", "m_2", "m_1"],
+        "type": ["IM", "NL", "IM"],
         "theoretical_mz": [mz_mod_1, mz_mod_2, mz_mod_1],
         "detected_mz": [mz_mod_1, mz_mod_2, mz_mod_1],
         "detected_intensity": [peak, peak, peak],
@@ -360,7 +366,7 @@ def test_no_ions_in_spectrum_applied_snr_threshold(
 def higher_energy_spectrum_within_mass_tolerance() -> MSSpectrum:
     return spectrum_ms2_higher_energy(
         native_id=spectrum_native_id,
-        peaks_mz_intensities=mz_intensities_within_mass_tolerance,
+        peaks_mz_intensities=mz_intensities_within_mass_tolerance_irrelevant_peaks,
     )
 
 
@@ -369,7 +375,7 @@ def test_within_ppm_tolerance_detected(
     detector_with_ppm_tolerance_no_snr_threshold: DiagnosticIonDetector,
 ) -> None:
     """When a ppm tolerance is set, peaks within the tolerance range
-    should be detected."""
+    should be detected, other peaks should still be ignored."""
     assert_detection_results_correct(
         detector_with_ppm_tolerance_no_snr_threshold,
         higher_energy_spectrum_within_mass_tolerance,
