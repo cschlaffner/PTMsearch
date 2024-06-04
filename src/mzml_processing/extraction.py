@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Callable, Union
 
 from pyopenms import MSExperiment, MSSpectrum, MzMLFile
+
 from src.config.config import Config
 from src.mzml_processing.utils import (
     check_collision_energy_ms2_spectrum,
