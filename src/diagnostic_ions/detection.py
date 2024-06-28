@@ -172,6 +172,7 @@ class DiagnosticIonDetector:
         self, spectra: List[MSSpectrum]
     ) -> pd.DataFrame:
         """Extract modification names for the provided spectra."""
+        assert len(spectra) > 0, "Empty list of spectra was given."
 
         a = time()
         results = [
@@ -182,6 +183,7 @@ class DiagnosticIonDetector:
         print(f"average search time: {np.mean(self.search_times)}", flush=True)
         print(f"average concat time: {np.mean(self.concat_times)}", flush=True)
         c = time()
+
         result = pd.concat(
             results,
             ignore_index=True,
