@@ -72,6 +72,10 @@ class ScanWindowExtractor:
             exp, self._check_higher_energy_spectrum
         )
 
+    def extract_ms1_windows(self, exp: MSExperiment) -> MSExperiment:
+        """Extracts all MS1 scan windows to a second MSExperiment"""
+        return self._extract_windows_for_criterion(exp, check_ms1_spectrum)
+
     def rename_spectrum_ids(self, exp: MSExperiment) -> MSExperiment:
         # TODO: test/try out
         spectra = exp.getSpectra()

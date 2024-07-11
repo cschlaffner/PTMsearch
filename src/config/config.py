@@ -9,6 +9,8 @@ class Config:
     lower_collision_energy: Union[float, int]
     higher_collision_energy: Union[float, int]
     known_diagnostic_ions_file: str
+    # TODO: allow multiple files to allow multi-run
+    mzml_file: str
     diagnostic_ions_mass_tolerance: Union[float, int]
     diagnostic_ions_mass_tolerance_unit: str
     snr_threshold: Union[float, int]
