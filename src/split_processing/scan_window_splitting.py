@@ -226,11 +226,15 @@ class ScanWindowSplitting:
         MS1 windows before their related MS2 windows in order to be searchable.
 
         The result modification identifiers are in amino acid + Unimod accession format,
-        windows without a diagnostic ion are grouped into 'unmodified'.
+        windows without a diagnostic ion are grouped into 'unmodified'. If no diagnostic
+        ions are given, all windows are grouped into 'unmodified'
         """
         self._validate_spectra_mslevel_and_collision_energy(
             ms1_windows, ms1_and_lower_energy_windows, ms1_and_higher_energy_windows
         )
+
+        if len(detected_ions_df) == 0:
+            return {"unmodified": ms1_and_lower_energy_windows}
 
         ms1_windows_df = self._list_ms1_spectra_by_id(ms1_windows)
         lower_energy_windows_df = self._list_spectra_by_ms1_and_rt(
