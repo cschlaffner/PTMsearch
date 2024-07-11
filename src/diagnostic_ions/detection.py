@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from pyopenms import MSSpectrum
 
-from src.mzml_processing.utils import check_collision_energy_ms2_spectrum
+from src.mzml_processing.utils import validate_collision_energy_ms2_spectrum
 
 MassToleranceUnit = Enum("MassToleranceUnit", ["ppm", "Da"])
 
@@ -76,24 +76,12 @@ class DiagnosticIonDetector:
             else self.mass_tolerance
         )
 
-    def _validate_spectrum(self, spectrum: MSSpectrum) -> None:
-        """
-        Validates that a spectrum is of MS level 2 and with higher collision
-        energy in order to extract diagnostic ions from it. Also checks that mz
-        and ion arrays match regarding length.
-        """
-        spectrum_id = spectrum.getNativeID()
-
-        assert check_collision_energy_ms2_spectrum(
-            spectrum, self.higher_collision_energy
-        ), f"Spectrum {spectrum_id} for diagnostic ion extraction must be a higher-energy MS2 scan."
-
     def extract_diagnostic_ions_for_spectrum(
         self, spectrum: MSSpectrum
     ) -> pd.DataFrame:
         """Extract information about the modifications
         for which a diagnostic ion matches a spectrum peak considering the tolerance."""
-        self._validate_spectrum(spectrum)
+        validate_collision_energy_ms2_spectrum(spectrum, self.higher_collision_energy)
 
         spectrum_mz, intensities = spectrum.get_peaks()
 
@@ -166,7 +154,9 @@ class DiagnosticIonDetector:
         """Validates that spectra are suitable for diagnostic ion extraction
         (MS2 and higher collision energy)."""
         for spectrum in spectra:
-            self._validate_spectrum(spectrum)
+            validate_collision_energy_ms2_spectrum(
+                spectrum, self.higher_collision_energy
+            )
 
     def extract_diagnostic_ions_for_spectra(
         self, spectra: List[MSSpectrum]

@@ -466,7 +466,7 @@ def test_ion_detection_lower_energy_fails(
     detector_exact_matching_snr_threshold: DiagnosticIonDetector,
 ) -> None:
     """Diagnostic ion detection for a lower-energy MS2 scan should fail."""
-    with pytest.raises(AssertionError, match="higher-energy"):
+    with pytest.raises(AssertionError, match="collision energy"):
         detector_exact_matching_snr_threshold.extract_diagnostic_ions_for_spectrum(
             lower_energy_spectrum
         )
@@ -534,7 +534,7 @@ def test_validate_lower_energy_spectra_fails(
     detector_exact_matching_snr_threshold: DiagnosticIonDetector,
 ) -> None:
     """Validation of a list of lower-energy spectra should fail."""
-    with pytest.raises(AssertionError, match="higher-energy"):
+    with pytest.raises(AssertionError, match="collision energy"):
         detector_exact_matching_snr_threshold.validate_diagnostic_ion_spectra(
             [lower_energy_spectrum]
         )
