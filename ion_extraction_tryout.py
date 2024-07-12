@@ -51,7 +51,7 @@ print("Loaded spectra, starting ion extraction", flush=True)
 
 result_df = detector.extract_diagnostic_ions_for_spectra(exp_higher_energy.getSpectra())
 
-result_filename = f"{args.mzml_path}_diagnostic_ions_ppm_tolerance_{ppm_tolerance}_snr_threshold_{snr_threshold}.csv"
+result_filename = f"{args.mzml_path}_diagnostic_ions_ppm_tolerance_{ppm_tolerance}_snr_threshold_{snr_threshold}_test_withunimod.csv"
 
 print(datetime.datetime.now())
 print("Extracted spectra, saving to file", flush=True)

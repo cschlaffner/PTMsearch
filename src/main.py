@@ -38,6 +38,8 @@ def main(config_path: Path):
 
     logger.info("Searching for diagnostic ions in higher-energy spectra...")
 
+    # TODO: what about the mods that are not in UniMod? handle and/or add some validation
+
     detected_ions_df = DiagnosticIonDetector(
         config.known_diagnostic_ions_file,
         config.diagnostic_ions_mass_tolerance,
@@ -52,29 +54,14 @@ def main(config_path: Path):
 
     logger.info("Saved diagnostic ion detection results in %s.", ions_file)
 
-    # HERE, BEFORE splitting: reduce the detected ions df to only include ions that are also in the SL! So that
-    # the others are searched with "unmdifed!"
-
-    windows_by_mod = ScanWindowSplitting(
-        config.lower_collision_energy, config.higher_collision_energy
-    ).split_windows_by_mods(
-        ms1_windows,
-        ms1_and_lower_energy_windows,
-        ms1_and_higher_energy_windows,
-        detected_ions_df,
-    )
-
-    window_mods = set(windows_by_mod.keys())
-    spectral_library_mods = set(config.spectral_library_files_by_mod.keys())
-
-    # this is trash! Redo, so that the mods from the windows that are not in the SL are searched as unmodified!
-    matching_mods = window_mods.intersection(spectral_library_mods)
-    window_only_mods = window_mods.difference(spectral_library_mods).difference(
+    detected_mods = set(detected_ions_df["letter_and_unimod_format_mod"].unique())
+    spectral_library_mods = set(config.spectral_library_files_by_mod.keys()).difference(
         {"unmodified"}
     )
-    spectral_library_only_mods = spectral_library_mods.difference(
-        window_mods
-    ).difference({"unmodified"})
+
+    matching_mods = detected_mods.intersection(spectral_library_mods)
+    window_only_mods = detected_mods.difference(spectral_library_mods)
+    spectral_library_only_mods = spectral_library_mods.difference(detected_mods)
 
     if len(window_only_mods) > 0:
         logger.info(
@@ -88,8 +75,22 @@ def main(config_path: Path):
             spectral_library_only_mods,
         )
 
-    for mod in matching_mods:
-        windows_for_mod = windows_by_mod[mod]
+    # Split only by modifications that are also in the spectral library so that all windows with
+    # other modifications are searched as 'unmodified'.
+    detected_ions_df = detected_ions_df[
+        detected_ions_df["letter_and_unimod_format_mod"].isin(matching_mods)
+    ]
+
+    windows_by_mod = ScanWindowSplitting(
+        config.lower_collision_energy, config.higher_collision_energy
+    ).split_windows_by_mods(
+        ms1_windows,
+        ms1_and_lower_energy_windows,
+        ms1_and_higher_energy_windows,
+        detected_ions_df,
+    )
+
+    for mod, windows_for_mod in windows_by_mod.items():
         # DIA-NN requires spectra to have incremental IDs without missing numbers
         windows_for_mod = extractor.rename_spectrum_ids(windows_for_mod)
 
