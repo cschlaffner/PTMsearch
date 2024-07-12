@@ -109,6 +109,7 @@ empty_results_df = pd.DataFrame(
         "spectrum_id",
         "amino_acid",
         "mod_name",
+        "letter_and_unimod_format_mod",
         "type",
         "theoretical_mz",
         "detected_mz",
@@ -119,8 +120,13 @@ empty_results_df = pd.DataFrame(
 all_ions_from_spectrum_exact_matching_df = pd.DataFrame(
     {
         "spectrum_id": [spectrum_native_id, spectrum_native_id, spectrum_native_id],
-        "amino_acid": ["a_1", "a_1", "a_2"],
-        "mod_name": ["m_1", "m_2", "m_3"],
+        "amino_acid": ["Lysine", "Lysine", "Tyrosine"],
+        "mod_name": ["Acetyl", "Methyl", "Phospho"],
+        "letter_and_unimod_format_mod": [
+            "K(UniMod:1)",
+            "K(UniMod:34)",
+            "Y(UniMod:21)",
+        ],
         "type": ["IM", "NL", "IM"],
         "theoretical_mz": [mz_mod_1, mz_mod_2, mz_mod_3],
         "detected_mz": [mz_mod_1, mz_mod_2, mz_mod_3],
@@ -131,8 +137,11 @@ all_ions_from_spectrum_exact_matching_df = pd.DataFrame(
 single_higher_peak_ion_df = pd.DataFrame(
     {
         "spectrum_id": [spectrum_native_id],
-        "amino_acid": ["a_1"],
-        "mod_name": ["m_2"],
+        "amino_acid": ["Lysine"],
+        "mod_name": ["Methyl"],
+        "letter_and_unimod_format_mod": [
+            "K(UniMod:34)",
+        ],
         "type": ["NL"],
         "theoretical_mz": [mz_mod_2],
         "detected_mz": [mz_mod_2],
@@ -143,8 +152,11 @@ single_higher_peak_ion_df = pd.DataFrame(
 within_mass_tolerance_df = pd.DataFrame(
     {
         "spectrum_id": [spectrum_native_id],
-        "amino_acid": ["a_1"],
-        "mod_name": ["m_1"],
+        "amino_acid": ["Lysine"],
+        "mod_name": ["Acetyl"],
+        "letter_and_unimod_format_mod": [
+            "K(UniMod:1)",
+        ],
         "type": ["IM"],
         "theoretical_mz": [mz_mod_1],
         "detected_mz": [mz_mod_1_threshold_border_higher],
@@ -155,8 +167,11 @@ within_mass_tolerance_df = pd.DataFrame(
 within_mass_tolerance_multiple_df = pd.DataFrame(
     {
         "spectrum_id": [spectrum_native_id],
-        "amino_acid": ["a_1"],
-        "mod_name": ["m_1"],
+        "amino_acid": ["Lysine"],
+        "mod_name": ["Acetyl"],
+        "letter_and_unimod_format_mod": [
+            "K(UniMod:1)",
+        ],
         "type": ["IM"],
         "theoretical_mz": [mz_mod_1],
         "detected_mz": [
@@ -173,8 +188,13 @@ multiple_spectra_df = pd.DataFrame(
             spectrum_native_id,
             spectrum_2_native_id,
         ],
-        "amino_acid": ["a_1", "a_1", "a_1"],
-        "mod_name": ["m_1", "m_2", "m_1"],
+        "amino_acid": ["Lysine", "Lysine", "Lysine"],
+        "mod_name": ["Acetyl", "Methyl", "Acetyl"],
+        "letter_and_unimod_format_mod": [
+            "K(UniMod:1)",
+            "K(UniMod:34)",
+            "K(UniMod:1)",
+        ],
         "type": ["IM", "NL", "IM"],
         "theoretical_mz": [mz_mod_1, mz_mod_2, mz_mod_1],
         "detected_mz": [mz_mod_1, mz_mod_2, mz_mod_1],

@@ -6,7 +6,7 @@ from typing import List, Tuple, Union, cast
 
 import numpy as np
 import pandas as pd
-from pyopenms import MSSpectrum
+from pyopenms import ModificationsDB, MSSpectrum, ResidueDB
 
 from src.mzml_processing.utils import validate_collision_energy_ms2_spectrum
 
@@ -31,6 +31,19 @@ class DiagnosticIonDetector:
         self.higher_collision_energy = higher_collision_energy
 
         self._validate_config()
+
+        # Add single-letter amino acid and UniMod accession format for compatibility with mod format in spectral libraries
+        modifications_db = ModificationsDB()
+        residue_db = ResidueDB()
+
+        letter_and_unimod_format_mod = self.known_ions["amino_acid"].apply(
+            lambda amino_acid: residue_db.getResidue(amino_acid).getOneLetterCode()
+        ) + self.known_ions["mod_name"].apply(
+            lambda mod_name: f"({modifications_db.getModification(mod_name).getUniModAccession()})"
+        )
+        self.known_ions.insert(
+            0, "letter_and_unimod_format_mod", letter_and_unimod_format_mod
+        )
 
         # TODO: delete
         self.search_times = []
@@ -92,6 +105,7 @@ class DiagnosticIonDetector:
                 "spectrum_id",
                 "amino_acid",
                 "mod_name",
+                "letter_and_unimod_format_mod",
                 "type",
                 "theoretical_mz",
                 "detected_mz",
@@ -128,6 +142,9 @@ class DiagnosticIonDetector:
                         "spectrum_id": [spectrum.getNativeID()],
                         "amino_acid": [known_ion.amino_acid],
                         "mod_name": [known_ion.mod_name],
+                        "letter_and_unimod_format_mod": [
+                            known_ion.letter_and_unimod_format_mod
+                        ],
                         "type": [known_ion.type],
                         "theoretical_mz": [known_ion_mz],
                         "detected_mz": [max_peak_mz],

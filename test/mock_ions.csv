@@ -1,4 +1,4 @@
 amino_acid,mod_name,type,mz
-a_1,m_1,IM,100
-a_1,m_2,NL,200
-a_2,m_3,IM,300
+Lysine,Acetyl,IM,100
+Lysine,Methyl,NL,200
+Tyrosine,Phospho,IM,300
