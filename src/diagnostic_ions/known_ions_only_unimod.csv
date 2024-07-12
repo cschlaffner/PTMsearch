@@ -16,8 +16,8 @@ Cysteine,Propionamide,NL,71.0366
 Cysteine,Sulfo,NL,79.9568
 Histidine,Carbamidomethyl,IM,167.0927
 Histidine,HNE,IM,266.1863
-Histidine,Oxidation,IM,126.0662
 Histidine,Methyl,IM,124.0869
+Histidine,Oxidation,IM,126.0662
 Histidine,Phospho,NL,79.9663
 Lysine,Acetyl,IM-NH3,126.0913
 Lysine,Acetyl,IM,143.1179
@@ -60,11 +60,11 @@ Proline,Oxidation,IM,86.0600
 Serine,Phospho,IM,140.0107
 Threonine,Phospho,IM,154.0264
 Tryptophan,Bromo,IM,237.0022
+Tryptophan,Methyl,IM,173.1073
+Tryptophan,Methyl,IM-29,144.0808
 Tryptophan,Oxidation,IM,175.0857
 Tryptophan,Thiazolidine,IM,171.0917
 Tryptophan,Trp->Kynurenin,IM,163.0857
-Tryptophan,Methyl,IM,173.1073
-Tryptophan,Methyl,IM-29,144.0808
 Tyrosine,Bromo,IM,213.9862
 Tyrosine,Chlorination,IM,170.0367
 Tyrosine,Dibromo,IM,291.8967
