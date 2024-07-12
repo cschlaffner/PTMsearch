@@ -6,7 +6,7 @@ from typing import Dict, Union
 
 @dataclass
 class Config:
-    tmp_dir: str
+    result_dir: str
     # TODO: allow multiple files to allow multi-run
     mzml_file: str
     dia_nn_path: str

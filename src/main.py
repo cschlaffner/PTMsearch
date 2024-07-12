@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def main(config_path: Path):
     config = Config.from_path(config_path)
-    tmp_path = Path(config.tmp_dir)
+    result_path = Path(config.result_dir)
 
     logger.info("Loading spectra...")
 
@@ -27,7 +27,7 @@ def main(config_path: Path):
     )
 
     # TODO: make a better function in the extractor
-    # and add some validation
+    # and add some validation (including whether all paths exist etc)
     ms1_and_higher_energy_windows = extractor.extract_ms1_and_higher_energy_windows(exp)
     higher_energy_windows = extractor.extract_higher_energy_windows(
         ms1_and_higher_energy_windows
@@ -48,7 +48,7 @@ def main(config_path: Path):
         config.higher_collision_energy,
     ).extract_diagnostic_ions_for_spectra(higher_energy_windows.getSpectra())
 
-    ions_file = tmp_path / "detected_ions.csv"
+    ions_file = result_path / "detected_ions.csv"
 
     detected_ions_df.to_csv(ions_file, index=False)
 
@@ -81,6 +81,8 @@ def main(config_path: Path):
         detected_ions_df["letter_and_unimod_format_mod"].isin(matching_mods)
     ]
 
+    logger.info("Splitting scan windows by modifications...")
+
     windows_by_mod = ScanWindowSplitting(
         config.lower_collision_energy, config.higher_collision_energy
     ).split_windows_by_mods(
@@ -90,23 +92,56 @@ def main(config_path: Path):
         detected_ions_df,
     )
 
-    for mod, windows_for_mod in windows_by_mod.items():
-        # DIA-NN requires spectra to have incremental IDs without missing numbers
-        windows_for_mod = extractor.rename_spectrum_ids(windows_for_mod)
+    logger.info("Searching for the following splits: %s.", list(windows_by_mod.keys()))
 
-        mzml_path_for_mod = tmp_path / f"lower_energy_windows_{mod}.mzML"
+    for mod, windows_for_mod in windows_by_mod.items():
+        logger.info("Preparing search for modification %s...", mod)
+
+        logger.info(
+            "Renaming spectrum IDs to satisfy condition "
+            "of incremental IDs without missing numbers for DIA-NN."
+        )
+        windows_for_mod, spectrum_id_mapping = extractor.rename_spectrum_ids(
+            windows_for_mod, return_id_mapping=True
+        )
+
+        # TODO: this should probably be some temporary directory later
+        mzml_path_for_mod = result_path / f"lower_energy_windows_{mod}.mzML"
         output_file = get_diann_compatible_mzml_output_file()
         output_file.store(str(mzml_path_for_mod), windows_for_mod)
+        logger.info(
+            "Saved windows to search (MS1 and lower-energy) in %s.", mzml_path_for_mod
+        )
+
+        spectrum_id_mapping_path = result_path / f"spectrum_id_mapping_{mod}.csv"
+        spectrum_id_mapping.to_csv(spectrum_id_mapping_path)
+        logger.info(
+            "Saved mapping from original to renamed spectrum IDs in %s.",
+            spectrum_id_mapping_path,
+        )
 
         spectral_library_file_for_mod = config.spectral_library_files_by_mod[mod]
 
-        subprocess.run(
+        # TODO: make more configurable/use extra DIA-NN config file
+        dia_nn_command_for_mod = (
             f"{config.dia_nn_path} "
             f"--f {mzml_path_for_mod} "
             f"--lib {spectral_library_file_for_mod} "
-            f"--out {tmp_path}/report_{mod}.tsv "
-            "--mass-acc 5 --mass-acc-ms1 20 --window 0 --threads 8",
+            f"--out {result_path}/report_{mod}.tsv "
+            "--mass-acc 5 --mass-acc-ms1 20 --window 0 --threads 8"
+        )
+
+        logger.info(
+            "DIA-NN command to run for modification %s is %s. Starting DIA-NN run...",
+            mod,
+            dia_nn_command_for_mod,
+        )
+
+        subprocess.run(
+            dia_nn_command_for_mod,
             check=True,
         )
+
+        logger.info("DIA-NN run for modification %s has finished.", mod)
 
         # and do some aggregation

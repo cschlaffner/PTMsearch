@@ -4,8 +4,8 @@
     "known_diagnostic_ions_file": "src/diagnostic_ions/known_ions_only_unimod.csv",
     "diagnostic_ions_mass_tolerance": 5.0,
     "diagnostic_ions_mass_tolerance_unit": "ppm",
-    "snr_threshold": 2,
-    "tmp_dir": "../data/tmp",
+    "snr_threshold": 3,
+    "result_dir": "../data/workflow_test",
     "mzml_file": "../data/230928_JL_Immonium_ions_Modified_DIA.mzML",
     "dia_nn_path": "../diann_1.8.1/diann_1.8.1",
     "spectral_library_files_by_mod": {"unmodified": "../library.predicted.speclib"}

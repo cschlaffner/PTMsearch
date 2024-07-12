@@ -1,7 +1,8 @@
 from argparse import ArgumentParser
 from pathlib import Path
-from typing import Callable, Union
+from typing import Callable, Tuple, Union
 
+import pandas as pd
 from pyopenms import MSExperiment, MSSpectrum, MzMLFile
 
 from src.config.config import Config
@@ -76,14 +77,29 @@ class ScanWindowExtractor:
         """Extracts all MS1 scan windows to a second MSExperiment"""
         return self._extract_windows_for_criterion(exp, check_ms1_spectrum)
 
-    def rename_spectrum_ids(self, exp: MSExperiment) -> MSExperiment:
-        # TODO: test/try out
+    def rename_spectrum_ids(
+        self, exp: MSExperiment, return_id_mapping: bool
+    ) -> Union[MSExperiment, Tuple[MSExperiment, pd.DataFrame]]:
+        # TODO: add test
         spectra = exp.getSpectra()
+        original_ids = []
+        renamed_ids = []
+
         for i, spectrum in enumerate(spectra):
+            original_ids.append(spectrum.getNativeID())
             # TODO: make this more flexible
-            spectrum.setNativeID(f"controllerType=0 controllerNumber=1 scan={i+1}")
+            new_id = f"controllerType=0 controllerNumber=1 scan={i+1}"
+            spectrum.setNativeID(new_id)
+            renamed_ids.append(new_id)
+
         exp.setSpectra(spectra)
-        return exp
+        if not return_id_mapping:
+            return exp
+
+        id_mapping_df = pd.DataFrame(
+            {"original_id": original_ids, "renamed_id": renamed_ids}
+        )
+        return exp, id_mapping_df
 
 
 def extract_and_store_ms1_and_lower_energy_windows(
