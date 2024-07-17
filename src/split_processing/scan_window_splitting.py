@@ -2,11 +2,12 @@ from typing import Dict, List, Union
 
 import numpy as np
 import pandas as pd
-import pyopenms as oms
 from pyopenms import MSExperiment, MSSpectrum
 
+from src.diagnostic_ions.utils import get_modification_unimod_format
 from src.mzml_processing.utils import (
     check_ms1_spectrum,
+    get_ms2_spectrum_mz,
     validate_collision_energy_ms2_spectrum,
     validate_ms1_spectrum,
 )
@@ -19,48 +20,44 @@ class ScanWindowSplitting:
         lower_collision_energy: Union[float, int],
         higher_collision_energy: Union[float, int],
     ) -> None:
-        self.modifications_db = oms.ModificationsDB()
-        self.residue_db = oms.ResidueDB()
         self.lower_collision_energy = lower_collision_energy
         self.higher_collision_energy = higher_collision_energy
 
-    def _list_spectra_by_ms1_and_rt(
-        self,
-        ms1_and_ms2_spectra: List[MSSpectrum],
+    def _list_spectra_by_ms1_and_mz(
+        self, ms1_and_ms2_spectra: List[MSSpectrum], num_ms1_spectra: int
     ) -> pd.DataFrame:
-        """Creates a DataFrame where every MS2 spectrum is identified by its retention
-        time and corresponding MS1 spectrum ID. This is required to match higher- and
+        """Creates a DataFrame where every MS2 spectrum is identified by its center
+        m/z and corresponding MS1 spectrum ID. This is required to match higher- and
         lower-energy spectra."""
-        spectra_empty_df = pd.DataFrame(
-            columns=[
-                "ms1_spectrum_id",
-                "ms2_spectrum_rt",
-                "ms2_spectrum_id",
-                "ms2_spectrum",
-            ]
-        )
-        spectra_dfs = [spectra_empty_df]
+        num_ms2_spectra = len(ms1_and_ms2_spectra) - num_ms1_spectra
         assert check_ms1_spectrum(
             ms1_and_ms2_spectra[0]
         ), "Scan window list should start with an MS1 spectrum."
-        current_ms1_spectrum = None
+        current_ms1_spectrum = ms1_and_ms2_spectra[0]
 
+        spectra_df = pd.DataFrame(
+            columns=[
+                "ms1_spectrum_id",
+                "ms2_spectrum_mz",
+                "ms2_spectrum_id",
+                "ms2_spectrum",
+            ],
+            index=range(num_ms2_spectra),
+        )
+
+        ms2_spectra_count = 0
         for spectrum in ms1_and_ms2_spectra:
             if check_ms1_spectrum(spectrum):
                 current_ms1_spectrum = spectrum
             else:
-                spectra_dfs.append(
-                    pd.DataFrame(
-                        {
-                            "ms1_spectrum_id": current_ms1_spectrum.getNativeID(),
-                            "ms2_spectrum_rt": spectrum.getRT(),
-                            "ms2_spectrum_id": spectrum.getNativeID(),
-                            "ms2_spectrum": spectrum,
-                        }
-                    )
-                )
+                spectra_df.loc[ms2_spectra_count] = [
+                    current_ms1_spectrum.getNativeID(),
+                    get_ms2_spectrum_mz(spectrum),
+                    spectrum.getNativeID(),
+                    spectrum,
+                ]
+                ms2_spectra_count += 1
 
-        spectra_df = pd.concat(spectra_dfs, ignore_index=True)
         return spectra_df
 
     def _list_ms1_spectra_by_id(self, ms1_windows: MSExperiment) -> pd.DataFrame:
@@ -72,10 +69,10 @@ class ScanWindowSplitting:
             columns=["ms1_spectrum_id", "ms1_spectrum"], index=range(len(spectra))
         )
         for i, spectrum in enumerate(spectra):
-            spectra_df.loc[i] = {
-                "ms1_spectrum_id": spectrum.getNativeID(),
-                "ms1_spectrum": spectrum,
-            }
+            spectra_df.loc[i] = [
+                spectrum.getNativeID(),
+                spectrum,
+            ]
         spectra_df.set_index("ms1_spectrum_id", inplace=True)
         return spectra_df
 
@@ -85,12 +82,14 @@ class ScanWindowSplitting:
         lower_energy_windows_df: pd.DataFrame,
         higher_energy_windows_df: pd.DataFrame,
     ) -> None:
-        assert lower_energy_windows_df[["ms1_spectrum_id", "ms2_spectrum_rt"]].equals(
-            higher_energy_windows_df[["ms1_spectrum_id", "ms2_spectrum_rt"]]
+        assert lower_energy_windows_df[["ms1_spectrum_id", "ms2_spectrum_mz"]].equals(
+            higher_energy_windows_df[["ms1_spectrum_id", "ms2_spectrum_mz"]]
         )
 
-        assert ms1_windows_df["ms1_spectrum_id"].equals(
-            lower_energy_windows_df["ms1_spectrum_id"].drop_duplicates()
+        # Using numpy instead of panda equal methods to make it about values only
+        assert np.array_equal(
+            ms1_windows_df.index,
+            lower_energy_windows_df["ms1_spectrum_id"].drop_duplicates(),
         )
 
     def _validate_spectra_mslevel_and_collision_energy(
@@ -119,7 +118,7 @@ class ScanWindowSplitting:
     ) -> pd.DataFrame:
         """The data about the detected ions contains only the ID of the higher-energy spectrum.
         To match the ions with the lower-energy spectra, more higher-energy window information
-        (retention time and MS1 spectrum ID) is needed.
+        (center m/z and MS1 spectrum ID) is needed.
         """
 
         higher_energy_windows_df.set_index("ms2_spectrum_id", inplace=True)
@@ -135,6 +134,9 @@ class ScanWindowSplitting:
         higher_energy_windows_detected_ions_df.loc[
             higher_energy_windows_detected_ions_df["mod_name"].isna(), "mod_name"
         ] = "unmodified"
+        higher_energy_windows_detected_ions_df.loc[
+            higher_energy_windows_detected_ions_df["amino_acid"].isna(), "amino_acid"
+        ] = "not_given"
 
         # TODO: reset index beforehand?
         return higher_energy_windows_detected_ions_df
@@ -145,23 +147,24 @@ class ScanWindowSplitting:
         higher_energy_windows_detected_ions_df: pd.DataFrame,
     ) -> pd.DataFrame:
         """Matches the lower-energy spectra with the information about the detected ions
-        containing also retention time and MS1 spectrum ID for each higher-energy window
+        containing also center m/z and MS1 spectrum ID for each higher-energy window
         in order to perform the matching.
         """
 
         # re-index to improve performance during join
         lower_energy_windows_df.set_index(
-            ["ms1_spectrum_id", "ms2_spectrum_rt"], inplace=True
+            ["ms1_spectrum_id", "ms2_spectrum_mz"], inplace=True
         )
         # TODO: reset index beforehand?
         higher_energy_windows_detected_ions_df.set_index(
-            ["ms1_spectrum_id", "ms2_spectrum_rt"], inplace=True
+            ["ms1_spectrum_id", "ms2_spectrum_mz"], inplace=True
         )
 
         windows_with_detected_ions_df = higher_energy_windows_detected_ions_df.join(
             lower_energy_windows_df,
-            on=["ms1_spectrum_id", "ms2_spectrum_rt"],
+            on=["ms1_spectrum_id", "ms2_spectrum_mz"],
             how="inner",  # although that shouldn't matter here
+            lsuffix="_higher_energy",
         )
         return windows_with_detected_ions_df
 
@@ -182,7 +185,8 @@ class ScanWindowSplitting:
         ):
             spectra_list_for_mod = np.array([])
             for ms1_spectrum_id, spectra_df in spectra_for_mod_df.groupby(
-                ["ms1_spectrum_id"]
+                ["ms1_spectrum_id"],
+                sort=False,  # lexicographical sorting messes up scan window order
             ):
                 spectra_list_for_mod = np.append(
                     spectra_list_for_mod,
@@ -193,19 +197,15 @@ class ScanWindowSplitting:
                 )
 
             exp_for_mod = MSExperiment()
-            exp_for_mod.setSpectra(spectra_list_for_mod)
+            exp_for_mod.setSpectra(list(spectra_list_for_mod))
 
             amino_acid, mod_name = mod
             if mod_name == "unmodified":
                 windows_by_mods[mod_name] = exp_for_mod
             else:
-                unimod_accession = self.modifications_db.getModification(
-                    mod_name
-                ).getUniModAccession()
-                amino_acid_letter = self.residue_db.getResidue(
-                    amino_acid
-                ).getOneLetterCode()
-                windows_by_mods[amino_acid_letter + unimod_accession] = exp_for_mod
+                windows_by_mods[
+                    get_modification_unimod_format(amino_acid, mod_name)
+                ] = exp_for_mod
 
         return windows_by_mods
 
@@ -237,22 +237,29 @@ class ScanWindowSplitting:
             return {"unmodified": ms1_and_lower_energy_windows}
 
         ms1_windows_df = self._list_ms1_spectra_by_id(ms1_windows)
-        lower_energy_windows_df = self._list_spectra_by_ms1_and_rt(
-            ms1_and_lower_energy_windows.getSpectra()
+        print("got ms1 windows df", flush=True)
+        num_ms1_windows = len(ms1_windows_df)
+        lower_energy_windows_df = self._list_spectra_by_ms1_and_mz(
+            ms1_and_lower_energy_windows.getSpectra(), num_ms1_windows
         )
-        higher_energy_windows_df = self._list_spectra_by_ms1_and_rt(
-            ms1_and_higher_energy_windows.getSpectra()
+        print("got lower_energy windows df", flush=True)
+        higher_energy_windows_df = self._list_spectra_by_ms1_and_mz(
+            ms1_and_higher_energy_windows.getSpectra(), num_ms1_windows
         )
+        print("got higher_energy windows df", flush=True)
 
         self._validate_spectra_identifiers_matching(
             ms1_windows_df, lower_energy_windows_df, higher_energy_windows_df
         )
+
+        print("validated identifiers", flush=True)
 
         higher_energy_windows_detected_ions_df = (
             self._match_higher_energy_spectra_with_detected_ions(
                 higher_energy_windows_df, detected_ions_df
             )
         )
+        print("matched with ions", flush=True)
 
         windows_with_detected_ions_df = (
             self._match_lower_and_higher_energy_spectra_with_ions(
@@ -260,8 +267,12 @@ class ScanWindowSplitting:
             )
         )
 
+        print("matched higher-and lower-energy", flush=True)
+
         windows_by_mods = self._group_windows_by_mods(
             ms1_windows_df, windows_with_detected_ions_df
         )
+
+        print("grouped by mods", flush=True)
 
         return windows_by_mods

@@ -1,6 +1,6 @@
-from typing import Union, cast
+from typing import List, Union, cast
 
-from pyopenms import MSSpectrum, MzMLFile, PeakFileOptions
+from pyopenms import MSSpectrum, MzMLFile, PeakFileOptions, Precursor
 
 
 def get_diann_compatible_mzml_output_file() -> MzMLFile:
@@ -22,7 +22,7 @@ def check_ms1_spectrum(spectrum: MSSpectrum) -> bool:
     return spectrum.getMSLevel() == 1
 
 
-def validate_ms1_spectrum(spectrum: MSSpectrum) -> bool:
+def validate_ms1_spectrum(spectrum: MSSpectrum) -> None:
     """Validates that spectrum is of MS level 1."""
     assert check_ms1_spectrum(spectrum), (
         f"Spectrum {spectrum.getNativeID()} should be an MS1 scan, "
@@ -35,7 +35,7 @@ def check_ms2_spectrum(spectrum: MSSpectrum) -> bool:
     return spectrum.getMSLevel() == 2
 
 
-def validate_ms2_spectrum(spectrum: MSSpectrum) -> bool:
+def validate_ms2_spectrum(spectrum: MSSpectrum) -> None:
     """Validates that spectrum is of MS level 2."""
     assert check_ms2_spectrum(spectrum), (
         f"Spectrum {spectrum.getNativeID()} should be an MS2 scan, "
@@ -43,18 +43,25 @@ def validate_ms2_spectrum(spectrum: MSSpectrum) -> bool:
     )
 
 
-def get_spectrum_collision_energy(spectrum: MSSpectrum) -> Union[float, int]:
-    """Retrieves the collision energy of a spectrum, assuming structure
-    <spectrum> <precursorList> <precursor> <activation> <cvParam name="collision energy" value=XX>
-    and only one precursor entry.
-    """
+def get_ms2_spectrum_precursors(spectrum: MSSpectrum) -> List[Precursor]:
+    """Obtain the precursors of an MS2 spectrum including some validation."""
     validate_ms2_spectrum(spectrum)
 
     precursors = spectrum.getPrecursors()
     assert len(precursors) > 0, (
-        f"Spectrum {spectrum.getNativeID()} has no precursors to extract "
-        "the collision energy from, check your MzML structure."
+        f"Spectrum {spectrum.getNativeID()} has no precursors to extract"
+        "the wanted properties from, check your MzML structure."
     )
+    return precursors
+
+
+def get_ms2_spectrum_collision_energy(spectrum: MSSpectrum) -> Union[float, int]:
+    """Retrieves the collision energy of an MS2 spectrum, assuming structure
+    <spectrum> <precursorList> <precursor> <activation> <cvParam name="collision energy" value=XX>
+    and only one precursor entry.
+    """
+    precursors = get_ms2_spectrum_precursors(spectrum)
+
     collision_energy = precursors[0].getMetaValue("collision energy")
     assert isinstance(
         collision_energy, (float, int)
@@ -64,11 +71,17 @@ def get_spectrum_collision_energy(spectrum: MSSpectrum) -> Union[float, int]:
     return cast(float, collision_energy)
 
 
+def get_ms2_spectrum_mz(spectrum: MSSpectrum) -> float:
+    """Retrieves the scan window center m/z from an MS2 spectrum."""
+    precursors = get_ms2_spectrum_precursors(spectrum)
+    return precursors[0].getMZ()
+
+
 def check_collision_energy(
     spectrum: MSSpectrum, collision_energy: Union[float, int]
 ) -> bool:
     """Checks whether a spectrum has a certain collision energy."""
-    return get_spectrum_collision_energy(spectrum) == collision_energy
+    return get_ms2_spectrum_collision_energy(spectrum) == collision_energy
 
 
 def check_collision_energy_ms2_spectrum(
@@ -88,5 +101,5 @@ def validate_collision_energy_ms2_spectrum(
 
     assert check_collision_energy(spectrum, collision_energy), (
         f"Spectrum {spectrum.getNativeID()} should have collision energy {collision_energy} "
-        f"but has {get_spectrum_collision_energy(spectrum)}."
+        f"but has {get_ms2_spectrum_collision_energy(spectrum)}."
     )

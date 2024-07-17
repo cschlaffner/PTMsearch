@@ -121,7 +121,7 @@ def extract_and_store_ms1_and_lower_energy_windows(
     )
 
     output_exp = extractor.extract_ms1_and_lower_energy_windows(exp)
-    output_exp = extractor.rename_spectrum_ids(output_exp)
+    output_exp = extractor.rename_spectrum_ids(output_exp, False)
 
     output_file = get_diann_compatible_mzml_output_file()
     output_file.store(str(output_path), output_exp)

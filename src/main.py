@@ -1,7 +1,9 @@
 import logging
 import subprocess
+from argparse import ArgumentParser
 from pathlib import Path
 
+import pandas as pd
 from pyopenms import MSExperiment, MzMLFile
 
 from src.config.config import Config
@@ -11,6 +13,7 @@ from src.mzml_processing.utils import get_diann_compatible_mzml_output_file
 from src.split_processing.scan_window_splitting import ScanWindowSplitting
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 
 def main(config_path: Path):
@@ -81,7 +84,7 @@ def main(config_path: Path):
         detected_ions_df["letter_and_unimod_format_mod"].isin(matching_mods)
     ]
 
-    logger.info("Splitting scan windows by modifications...")
+    logger.info("Splitting scan windows by modifications: %s...", matching_mods)
 
     windows_by_mod = ScanWindowSplitting(
         config.lower_collision_energy, config.higher_collision_energy
@@ -114,7 +117,7 @@ def main(config_path: Path):
         )
 
         spectrum_id_mapping_path = result_path / f"spectrum_id_mapping_{mod}.csv"
-        spectrum_id_mapping.to_csv(spectrum_id_mapping_path)
+        spectrum_id_mapping.to_csv(spectrum_id_mapping_path, index=False)
         logger.info(
             "Saved mapping from original to renamed spectrum IDs in %s.",
             spectrum_id_mapping_path,
@@ -137,11 +140,23 @@ def main(config_path: Path):
             dia_nn_command_for_mod,
         )
 
-        subprocess.run(
-            dia_nn_command_for_mod,
-            check=True,
-        )
+        # subprocess.run(
+        #     dia_nn_command_for_mod,
+        #     check=True,
+        # )
 
         logger.info("DIA-NN run for modification %s has finished.", mod)
 
         # and do some aggregation
+
+
+if __name__ == "__main__":
+    parser = ArgumentParser()
+    parser.add_argument(
+        "config_path",
+        type=str,
+        help="Path to config JSON file that defines values for higher and lower collision energy",
+    )
+    args = parser.parse_args()
+
+    main(Path(args.config_path))

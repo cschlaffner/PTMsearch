@@ -1,13 +1,12 @@
-import datetime
 from enum import Enum
 from pathlib import Path
-from time import time
 from typing import List, Tuple, Union, cast
 
 import numpy as np
 import pandas as pd
-from pyopenms import ModificationsDB, MSSpectrum, ResidueDB
+from pyopenms import MSSpectrum
 
+from src.diagnostic_ions.utils import get_modification_unimod_format
 from src.mzml_processing.utils import validate_collision_energy_ms2_spectrum
 
 MassToleranceUnit = Enum("MassToleranceUnit", ["ppm", "Da"])
@@ -32,31 +31,26 @@ class DiagnosticIonDetector:
 
         self._validate_config()
 
-        # Add single-letter amino acid and UniMod accession format for compatibility with mod format in spectral libraries
-        modifications_db = ModificationsDB()
-        residue_db = ResidueDB()
-
-        letter_and_unimod_format_mod = self.known_ions["amino_acid"].apply(
-            lambda amino_acid: residue_db.getResidue(amino_acid).getOneLetterCode()
-        ) + self.known_ions["mod_name"].apply(
-            lambda mod_name: f"({modifications_db.getModification(mod_name).getUniModAccession()})"
+        # Add single-letter amino acid and UniMod accession format
+        # for compatibility with mod format in spectral libraries
+        letter_and_unimod_format_mod = self.known_ions[
+            ["amino_acid", "mod_name"]
+        ].apply(
+            lambda mod: get_modification_unimod_format(mod.amino_acid, mod.mod_name),
+            axis=1,
         )
         self.known_ions.insert(
             0, "letter_and_unimod_format_mod", letter_and_unimod_format_mod
         )
 
-        # TODO: delete
-        self.search_times = []
-        self.concat_times = []
-        self.final_concat_time = []
-
     def _validate_config(self):
         assert np.array_equal(
             self.known_ions.columns, ["amino_acid", "mod_name", "type", "mz"]
         ), (
-            "Known ions CSV file has wrong format, should include columns: amino_acid",
-            "(name of the amino acid that is modified), mod_name (name of the modification),",
-            "type (immonium ion, neutral loss or others)) and mz (m/z value of the diagnostic ion).",
+            "Known ions CSV file has wrong format, should include columns: "
+            "amino_acid (name of the amino acid that is modified), "
+            "mod_name (name of the modification), type (immonium ion, "
+            "neutral loss or others)) and mz (m/z value of the diagnostic ion).",
         )
         assert self.mass_tolerance_unit in [unit.name for unit in MassToleranceUnit]
 
@@ -116,8 +110,8 @@ class DiagnosticIonDetector:
         if len(spectrum_mz) == 0:
             return empty_df
 
-        detected_ions_dfs = [empty_df]
-        a = time()
+        detected_ions_dfs = []
+
         for known_ion in self.known_ions.itertuples():
             # Casting to please the typechecking
             known_ion_mz = cast(float, known_ion.mz)
@@ -153,17 +147,13 @@ class DiagnosticIonDetector:
                 ),
             )
 
-        b = time()
-        self.search_times.append(b - a)
+        if len(detected_ions_dfs) == 0:
+            return empty_df
 
-        c = time()
         detected_ions_df = pd.concat(
             detected_ions_dfs,
             ignore_index=True,
         )
-
-        d = time()
-        self.concat_times.append(d - c)
 
         return detected_ions_df
 
@@ -180,25 +170,14 @@ class DiagnosticIonDetector:
     ) -> pd.DataFrame:
         """Extract modification names for the provided spectra."""
         assert len(spectra) > 0, "Empty list of spectra was given."
-
-        a = time()
         results = [
             self.extract_diagnostic_ions_for_spectrum(spectrum) for spectrum in spectra
         ]
-        b = time()
-
-        print(f"average search time: {np.mean(self.search_times)}", flush=True)
-        print(f"average concat time: {np.mean(self.concat_times)}", flush=True)
-        c = time()
-
         result = pd.concat(
             results,
             ignore_index=True,
         )
-        d = time()
 
-        print(f"total search time: {b - a}", flush=True)
-        print(f"final concat time: {d - c}", flush=True)
         return result
 
     # TODO: update docs to the df using version

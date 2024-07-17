@@ -8,5 +8,5 @@
     "result_dir": "../data/workflow_test",
     "mzml_file": "../data/230928_JL_Immonium_ions_Modified_DIA.mzML",
     "dia_nn_path": "../diann_1.8.1/diann_1.8.1",
-    "spectral_library_files_by_mod": {"unmodified": "../library.predicted.speclib"}
+    "spectral_library_files_by_mod": {"unmodified": "../library.predicted.speclib", "Y(UniMod:21)": "../library_phospho.predicted.speclib"}
 }
