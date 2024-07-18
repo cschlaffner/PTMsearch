@@ -18,12 +18,7 @@ def split_library_by_mods(spectrum_library: pd.DataFrame) -> Dict[str, pd.DataFr
     for lib_entry in spectrum_library.itertuples():
         # explicit string setting to please typecheck
         sequence = str(spectrum_library.transition_group_id)
-        mods = np.unique(
-            [
-                sequence[found.start() : found.end()]
-                for found in re.finditer(".(UniMod:[0-9]+)", sequence)
-            ]
-        )
+        mods = np.unique(re.findall(".(UniMod:[0-9]+)", sequence))
         if len(mods) == 0:
             library_entry_lists_by_mods["unmodified"].append(lib_entry)
             continue

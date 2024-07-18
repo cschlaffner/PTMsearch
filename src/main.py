@@ -8,6 +8,7 @@ from pyopenms import MSExperiment, MzMLFile
 
 from src.config.config import Config
 from src.diagnostic_ions.detection import DiagnosticIonDetector
+from src.diagnostic_ions.utils import modification_unimod_format_to_dia_nn_varmod_format
 from src.mzml_processing.extraction import ScanWindowExtractor
 from src.mzml_processing.utils import get_diann_compatible_mzml_output_file
 from src.split_processing.scan_window_splitting import ScanWindowSplitting
@@ -125,13 +126,19 @@ def main(config_path: Path):
 
         spectral_library_file_for_mod = config.spectral_library_files_by_mod[mod]
 
+        var_mod_command_for_mod = (
+            ""
+            if mod == "unmodified"
+            else f"--var-mod {modification_unimod_format_to_dia_nn_varmod_format(mod)}"
+        )
+
         # TODO: make more configurable/use extra DIA-NN config file
         dia_nn_command_for_mod = (
             f"{config.dia_nn_path} "
             f"--f {mzml_path_for_mod} "
             f"--lib {spectral_library_file_for_mod} "
             f"--out {result_path}/report_{mod}.tsv "
-            "--mass-acc 5 --mass-acc-ms1 20 --window 0 --threads 8"
+            f"--mass-acc 5 --mass-acc-ms1 20 --window 0 --threads 8 {var_mod_command_for_mod}"
         )
 
         logger.info(

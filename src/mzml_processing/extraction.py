@@ -121,10 +121,11 @@ def extract_and_store_ms1_and_lower_energy_windows(
     )
 
     output_exp = extractor.extract_ms1_and_lower_energy_windows(exp)
-    output_exp = extractor.rename_spectrum_ids(output_exp, False)
+    output_exp, mapping = extractor.rename_spectrum_ids(output_exp, True)
 
     output_file = get_diann_compatible_mzml_output_file()
     output_file.store(str(output_path), output_exp)
+    mapping.to_csv(mzml_path.parent / (mzml_path.stem + "_id_mapping.csv"), index=False)
 
 
 if __name__ == "__main__":
