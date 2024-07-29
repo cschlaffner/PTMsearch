@@ -1,3 +1,4 @@
+import re
 from argparse import ArgumentParser
 from pathlib import Path
 from typing import Callable, Tuple, Union
@@ -85,10 +86,17 @@ class ScanWindowExtractor:
         original_ids = []
         renamed_ids = []
 
+        scan_id_regex = re.compile("scan=[0-9]+")
+
         for i, spectrum in enumerate(spectra):
-            original_ids.append(spectrum.getNativeID())
-            # TODO: make this more flexible
-            new_id = f"controllerType=0 controllerNumber=1 scan={i+1}"
+            original_id = spectrum.getNativeID()
+            original_title = spectrum.getMetaValue("spectrum title")
+            original_ids.append(original_id)
+
+            new_id = re.sub(scan_id_regex, f"scan={i+1}", original_id)
+            new_title = re.sub(scan_id_regex, f"scan={i+1}", original_title)
+
+            spectrum.setMetaValue("spectrum title", new_title)
             spectrum.setNativeID(new_id)
             renamed_ids.append(new_id)
 
