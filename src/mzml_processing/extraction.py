@@ -92,9 +92,18 @@ class ScanWindowExtractor:
             original_id = spectrum.getNativeID()
             original_title = spectrum.getMetaValue("spectrum title")
             original_ids.append(original_id)
+            original_id_number = re.findall(scan_id_regex, original_id)[0][5:]
+            new_id_number = i + 1
 
-            new_id = re.sub(scan_id_regex, f"scan={i+1}", original_id)
-            new_title = re.sub(scan_id_regex, f"scan={i+1}", original_title)
+            new_id = re.sub(scan_id_regex, f"scan={new_id_number}", original_id)
+            new_title_part = re.sub(
+                scan_id_regex, f"scan={new_id_number}", original_title
+            )
+            new_title = re.sub(
+                f"{original_id_number}.{original_id_number}",
+                f"{new_id_number}.{new_id_number}",
+                new_title_part,
+            )
 
             spectrum.setMetaValue("spectrum title", new_title)
             spectrum.setNativeID(new_id)
