@@ -12,6 +12,7 @@ from src.diagnostic_ions.utils import modification_unimod_format_to_dia_nn_varmo
 from src.mzml_processing.extraction import ScanWindowExtractor
 from src.mzml_processing.utils import get_diann_compatible_mzml_output_file
 from src.split_processing.scan_window_splitting import ScanWindowSplitting
+from src.split_processing.spectral_library_splitting import split_library_by_mods
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -59,7 +60,21 @@ def main(config_path: Path):
     logger.info("Saved diagnostic ion detection results in %s.", ions_file)
 
     detected_mods = set(detected_ions_df["letter_and_unimod_format_mod"].unique())
-    spectral_library_mods = set(config.spectral_library_files_by_mod.keys()).difference(
+
+    if config.spectral_library_files_by_mod:
+        spectral_library_files_by_mod = config.spectral_library_files_by_mod
+    else:
+        library = pd.read_csv(
+            config.spectral_library_for_filtering_path, delimiter="\t"
+        )
+        spectral_library_df_by_mod = split_library_by_mods(library, False)
+        spectral_library_files_by_mod = {}
+        for mod, library_df in spectral_library_df_by_mod:
+            library_path = result_path / f"spectral_library_{mod}.tsv"
+            library_df.to_csv(library_path, sep="\t")
+            spectral_library_files_by_mod[mod] = library_path
+
+    spectral_library_mods = set(spectral_library_files_by_mod.keys()).difference(
         {"unmodified"}
     )
 
@@ -124,7 +139,7 @@ def main(config_path: Path):
             spectrum_id_mapping_path,
         )
 
-        spectral_library_file_for_mod = config.spectral_library_files_by_mod[mod]
+        spectral_library_file_for_mod = spectral_library_files_by_mod[mod]
 
         var_mod_command_for_mod = (
             ""

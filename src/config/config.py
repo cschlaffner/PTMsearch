@@ -12,6 +12,7 @@ class Config:
     dia_nn_path: str
     # TODO: change later (this setting is WIP)
     spectral_library_files_by_mod: Dict[str, str]
+    spectral_library_for_filtering_path: str
     lower_collision_energy: Union[float, int]
     higher_collision_energy: Union[float, int]
     known_diagnostic_ions_file: str

@@ -9,7 +9,7 @@ from typing import List
 
 import pytest
 from _pytest.fixtures import SubRequest
-from pyopenms import MSExperiment, MSSpectrum, Precursor
+from pyopenms import MSExperiment, MSSpectrum
 
 from src.mzml_processing.extraction import ScanWindowExtractor
 
