@@ -1,3 +1,4 @@
+from pathlib import Path
 from test.spectra import (
     COLLISION_ENERGY_HIGHER,
     spectrum_ms1,
@@ -18,7 +19,7 @@ from src.diagnostic_ions.detection import DiagnosticIonDetector
 
 snr_threshold = 2
 snr_threshold_higher = 3
-known_ions_file = "test/mock_ions.csv"
+known_ions_file = Path("test/mock_ions.csv")
 mass_tolerance_ppm = 5
 unit_ppm = "ppm"
 mass_tolerance_da = 0.0005

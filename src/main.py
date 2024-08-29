@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 from pyopenms import MSExperiment, MzMLFile
+
 from src.config.config import Config
 from src.diagnostic_ions.detection import DiagnosticIonDetector
 from src.diagnostic_ions.utils import modification_unimod_format_to_dia_nn_varmod_format
@@ -44,7 +45,7 @@ def main(config_path: Path):
     # TODO: what about the mods that are not in UniMod? handle and/or add some validation
 
     detected_ions_df = DiagnosticIonDetector(
-        config.known_diagnostic_ions_file,
+        Path(config.known_diagnostic_ions_file),
         config.diagnostic_ions_mass_tolerance,
         config.diagnostic_ions_mass_tolerance_unit,
         config.snr_threshold,
@@ -67,7 +68,7 @@ def main(config_path: Path):
         )
         spectral_library_df_by_mod = split_library_by_mods(library, False)
         spectral_library_files_by_mod = {}
-        for mod, library_df in spectral_library_df_by_mod:
+        for mod, library_df in spectral_library_df_by_mod.items():
             library_path = result_path / f"spectral_library_{mod}.tsv"
             library_df.to_csv(library_path, sep="\t")
             spectral_library_files_by_mod[mod] = library_path
