@@ -2,11 +2,11 @@
     "lower_collision_energy": 30,
     "higher_collision_energy": 50,
     "known_diagnostic_ions_file": "src/diagnostic_ions/known_ions_only_unimod.csv",
-    "diagnostic_ions_mass_tolerance": 5.0,
+    "diagnostic_ions_mass_tolerance": 10.0,
     "diagnostic_ions_mass_tolerance_unit": "ppm",
     "snr_threshold": 3,
-    "result_dir": "../data/workflow_test",
-    "mzml_file": "../data/230928_JL_Immonium_ions_Modified_DIA.mzML",
-    "dia_nn_path": "../diann_1.8.1/diann_1.8.1",
-    "spectral_library_files_by_mod": {"unmodified": "../library.predicted.speclib", "Y(UniMod:21)": "../library_phospho.predicted.speclib"}
+    "result_dir": "../workflow_test_tolerance_snr3_10ppm",
+    "mzml_file": "../proteomics_data/230928_JL_Immonium_ions_Modified_DIA.mzML",
+    "dia_nn_path": "../diann/diann-1.8.1",
+    "spectral_library_files_by_mod": {"unmodified": "../proteomics_data/library_filtered_database/in_silico_library_filtered_unmodified.predicted.speclib", "Y(UniMod:21)": "../proteomics_data/library_filtered_database/in_silico_library_filtered_phospho.predicted.speclib"}
 }

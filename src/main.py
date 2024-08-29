@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pandas as pd
 from pyopenms import MSExperiment, MzMLFile
-
 from src.config.config import Config
 from src.diagnostic_ions.detection import DiagnosticIonDetector
 from src.diagnostic_ions.utils import modification_unimod_format_to_dia_nn_varmod_format
@@ -31,8 +30,7 @@ def main(config_path: Path):
         config.lower_collision_energy, config.higher_collision_energy
     )
 
-    # TODO: make a better function in the extractor
-    # and add some validation (including whether all paths exist etc)
+    # TODO: add some validation (including whether all paths exist etc)
     ms1_and_higher_energy_windows = extractor.extract_ms1_and_higher_energy_windows(exp)
     higher_energy_windows = extractor.extract_higher_energy_windows(
         ms1_and_higher_energy_windows
@@ -148,13 +146,19 @@ def main(config_path: Path):
         )
 
         # TODO: make more configurable/use extra DIA-NN config file
-        dia_nn_command_for_mod = (
-            f"{config.dia_nn_path} "
-            f"--f {mzml_path_for_mod} "
-            f"--lib {spectral_library_file_for_mod} "
-            f"--out {result_path}/report_{mod}.tsv "
-            f"--mass-acc 5 --mass-acc-ms1 20 --window 0 --threads 8 {var_mod_command_for_mod}"
-        )
+        dia_nn_command_for_mod = [
+            f"{config.dia_nn_path}",
+            f"--f {mzml_path_for_mod}",
+            f"--lib {spectral_library_file_for_mod}",
+            f"--out {result_path}/report_{mod}.tsv",
+            "--mass-acc 10",
+            "--mass-acc-ms1 20",
+            "--window 0",
+            "--threads 8",
+            "--qvalue 1",
+            "--pg-level 2",
+            var_mod_command_for_mod,
+        ]
 
         logger.info(
             "DIA-NN command to run for modification %s is %s. Starting DIA-NN run...",
@@ -162,10 +166,10 @@ def main(config_path: Path):
             dia_nn_command_for_mod,
         )
 
-        # subprocess.run(
-        #     dia_nn_command_for_mod,
-        #     check=True,
-        # )
+        subprocess.run(
+            dia_nn_command_for_mod,
+            check=True,
+        )
 
         logger.info("DIA-NN run for modification %s has finished.", mod)
 
