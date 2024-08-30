@@ -52,7 +52,10 @@ class DiagnosticIonDetector:
             "mod_name (name of the modification), type (immonium ion, "
             "neutral loss or others)) and mz (m/z value of the diagnostic ion).",
         )
-        assert self.mass_tolerance_unit in [unit.name for unit in MassToleranceUnit]
+        allowed_units = [unit.name for unit in MassToleranceUnit]
+        assert (
+            self.mass_tolerance_unit in allowed_units
+        ), f"Mass tolerance unit is {self.mass_tolerance_unit}, allowed are {allowed_units}."
 
     def _remove_noise(
         self, spectrum_mz: np.ndarray, intensities: np.ndarray

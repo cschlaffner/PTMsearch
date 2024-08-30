@@ -14,6 +14,7 @@ def spectrum(
     native_id: Optional[str] = None,
     collision_energy: Optional[int] = None,
     peaks_mz_intensities: Optional[Tuple[np.ndarray, np.ndarray]] = None,
+    precursor_mz: Optional[float] = None,
 ) -> MSSpectrum:
     spec = MSSpectrum()
     spec.setMSLevel(ms_level)
@@ -24,6 +25,10 @@ def spectrum(
     if collision_energy is not None:
         precursor = Precursor()
         precursor.setMetaValue("collision energy", collision_energy)
+
+        if precursor_mz is not None:
+            precursor.setMZ(precursor_mz)
+
         spec.setPrecursors([precursor])
 
     if peaks_mz_intensities is not None:
@@ -40,21 +45,23 @@ def spectrum_ms1(native_id: Optional[str] = None) -> MSSpectrum:
 
 
 def spectrum_ms2_lower_energy(
-    native_id: Optional[str] = None,
+    native_id: Optional[str] = None, precursor_mz: Optional[float] = None
 ) -> MSSpectrum:
-    """Generates an MS2 spectrum with lower collision energy. M/z and intensities
+    """Generates an MS2 spectrum with lower collision energy. M/z peaks and intensities
     of lower-energy spectra are not relevant in this software
     at the current and planned state."""
     return spectrum(
         2,
         native_id=native_id,
         collision_energy=COLLISION_ENERGY_LOWER,
+        precursor_mz=precursor_mz,
     )
 
 
 def spectrum_ms2_higher_energy(
     native_id: Optional[str] = None,
     peaks_mz_intensities: Optional[Tuple[np.ndarray, np.ndarray]] = None,
+    precursor_mz: Optional[float] = None,
 ) -> MSSpectrum:
     """Generates an MS2 spectrum with higher collision energy."""
     return spectrum(
@@ -62,4 +69,5 @@ def spectrum_ms2_higher_energy(
         native_id=native_id,
         collision_energy=COLLISION_ENERGY_HIGHER,
         peaks_mz_intensities=peaks_mz_intensities,
+        precursor_mz=precursor_mz,
     )
