@@ -158,6 +158,7 @@ def main(config_path: Path):
             "--threads 8",
             "--qvalue 1",
             "--pg-level 2",
+            "--decoy-report",
             var_mod_command_for_mod,
         ]
 
