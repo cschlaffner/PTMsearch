@@ -175,6 +175,54 @@ def detected_ions_df_multiple_mods() -> pd.DataFrame:
 
 
 @pytest.fixture
+def detected_ions_df_multiple_mods_duplicate_entries() -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "spectrum_id": [
+                higher_energy_spectrum_1_native_id,
+                higher_energy_spectrum_3_native_id,
+                higher_energy_spectrum_3_native_id,
+                higher_energy_spectrum_3_native_id,
+                higher_energy_spectrum_4_native_id,
+                higher_energy_spectrum_4_native_id,
+                higher_energy_spectrum_4_native_id,
+                higher_energy_spectrum_4_native_id,
+            ],
+            "amino_acid": [
+                "Lysine",
+                "Tyrosine",
+                "Tyrosine",
+                "Tyrosine",
+                "Lysine",
+                "Lysine",
+                "Lysine",
+                "Tyrosine",
+            ],
+            "mod_name": [
+                "Acetyl",
+                "Phospho",
+                "Phospho",
+                "Phospho",
+                "Acetyl",
+                "Methyl",
+                "Methyl",
+                "Phospho",
+            ],
+            "letter_and_unimod_format_mod": [
+                "K(UniMod:1)",
+                "Y(UniMod:21)",
+                "Y(UniMod:21)",
+                "Y(UniMod:21)",
+                "K(UniMod:1)",
+                "K(UniMod:34)",
+                "K(UniMod:34)",
+                "Y(UniMod:21)",
+            ],
+        }
+    )
+
+
+@pytest.fixture
 def spectra_matching_with_result_multiple_mods() -> (
     Tuple[Union[MSExperiment, Dict[str, pd.DataFrame]]]
 ):
@@ -379,6 +427,10 @@ def test_splitting_no_mods(
         (
             "spectra_matching_with_result_multiple_mods",
             "detected_ions_df_multiple_mods",
+        ),
+        (
+            "spectra_matching_with_result_multiple_mods",
+            "detected_ions_df_multiple_mods_duplicate_entries",
         ),
     ],
 )
