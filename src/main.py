@@ -92,6 +92,7 @@ def main(config_path: Path):
             "Diagnostic ions for some mods in your spectral library were not detected: %s",
             spectral_library_only_mods,
         )
+    # TODO: add modification handling, validate that the list of search combinations does not contain single entries
 
     # Split only by modifications that are also in the spectral library so that all windows with
     # other modifications are searched as 'unmodified'.

@@ -1,15 +1,17 @@
 import re
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
+
 from src.diagnostic_ions.utils import diff_mono_mass_to_unimod_format
 
 
 # expecting library to be tsv
-# only take those with the mods for the windows with mods, do a run with unmodified for all windows
 def split_library_by_mods(
-    spectrum_library: pd.DataFrame, has_unimod_format: bool
+    spectrum_library: pd.DataFrame,
+    has_unimod_format: bool,
+    mod_combinations_to_search: List[Tuple[str]],
 ) -> Dict[str, pd.DataFrame]:
     library_entry_lists_by_mods: Dict[str, List] = {}
     unimod_regex = re.compile(".(UniMod:[0-9]+)")
@@ -32,18 +34,38 @@ def split_library_by_mods(
         if len(mods) == 0:
             mods = ["unmodified"]
 
-        # TODO: check how to handle those multiple-mod cases
-        for mod in mods:
+        # Single-mod searches
+        # TODO: how to handle it? When some mods only appear in combination with others?
+        # for mod in mods:
+        if len(mods) == 1:
+            mod = mods[0]
             if mod not in library_entry_lists_by_mods:
                 library_entry_lists_by_mods[mod] = [lib_entry_df]
             else:
                 library_entry_lists_by_mods[mod].append(lib_entry_df)
+
+        # Mod combination searches
+        for mod_combination in mod_combinations_to_search:
+            if set(mods).issubset(set(mod_combination)):
+                if mod_combination not in library_entry_lists_by_mods:
+                    library_entry_lists_by_mods[mod_combination] = [lib_entry_df]
+                else:
+                    library_entry_lists_by_mods[mod_combination].append(lib_entry_df)
+
+    # Add unmodified entries to all other libraries
+    for mod in library_entry_lists_by_mods:
+        if mod == "unmodified":
+            continue
+        library_entry_lists_by_mods[mod] = np.concatenate(
+            [
+                library_entry_lists_by_mods[mod],
+                library_entry_lists_by_mods["unmodified"],
+            ]
+        )
+
     print("Done filtering, concatenating...")
     libraries_by_mod = {}
     for mod, library_entry_list in library_entry_lists_by_mods.items():
         libraries_by_mod[mod] = pd.concat(library_entry_list, ignore_index=True)
 
-    # TODO: all unmodified to all with mods?
-
     return libraries_by_mod
-    # TODO: maybe make faster: take only the wanted mods?
