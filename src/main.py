@@ -2,6 +2,7 @@ import logging
 import subprocess
 from argparse import ArgumentParser
 from pathlib import Path
+from typing import List, Tuple, Union
 
 import pandas as pd
 from pyopenms import MSExperiment, MzMLFile
@@ -16,6 +17,30 @@ from src.split_processing.spectral_library_splitting import split_library_by_mod
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
+
+
+# TODO: maybe move this to utils file
+def make_dia_nn_var_mod_commands(
+    mods: Union[str, Tuple[str]], additional_mods: List[str]
+) -> List[str]:
+    # add all modifications from the combination (or single mod)
+    if mods == "unmodified":
+        var_mod_commands = []
+    else:
+        if isinstance(mods, str):
+            mods = [mods]
+        var_mod_commands = [
+            f"--var-mod {modification_unimod_format_to_dia_nn_varmod_format(mod)}"
+            for mod in mods
+        ]
+
+    # add all mods that should be searched additionally
+    var_mod_commands += [
+        f"--var-mod {modification_unimod_format_to_dia_nn_varmod_format(mod)}"
+        for mod in additional_mods
+    ]
+
+    return var_mod_commands
 
 
 def main(config_path: Path):
@@ -41,8 +66,7 @@ def main(config_path: Path):
     ms1_and_lower_energy_windows = extractor.extract_ms1_and_lower_energy_windows(exp)
 
     logger.info("Searching for diagnostic ions in higher-energy spectra...")
-
-    # TODO: what about the mods that are not in UniMod? handle and/or add some validation
+    # TODO: skip the search if there is already a detection file in the directory.
 
     detected_ions_df = DiagnosticIonDetector(
         Path(config.known_diagnostic_ions_file),
@@ -58,63 +82,99 @@ def main(config_path: Path):
 
     logger.info("Saved diagnostic ion detection results in %s.", ions_file)
 
-    detected_mods = set(detected_ions_df["letter_and_unimod_format_mod"].unique())
+    # TODO: add intermediate output of the results as plots and/or list the combinations
+    # Have an option for that.
 
-    if config.spectral_library_files_by_mod:
-        spectral_library_files_by_mod = config.spectral_library_files_by_mod
-    else:
-        library = pd.read_csv(
-            config.spectral_library_for_filtering_path, delimiter="\t"
-        )
-        spectral_library_df_by_mod = split_library_by_mods(library, False)
-        spectral_library_files_by_mod = {}
-        for mod, library_df in spectral_library_df_by_mod.items():
-            library_path = result_path / f"spectral_library_{mod}.tsv"
-            library_df.to_csv(library_path, sep="\t")
-            spectral_library_files_by_mod[mod] = library_path
+    # TODO: add validation that config mod combinations are not single mods and all mods in comb. have to be listed in mod list
 
-    spectral_library_mods = set(spectral_library_files_by_mod.keys()).difference(
-        {"unmodified"}
+    logger.info(
+        "Considering only mods %s and combinations %s for window splitting and spectrum library handling.",
+        config.modifications_to_search,
+        config.modification_combinations,
     )
 
-    matching_mods = detected_mods.intersection(spectral_library_mods)
-    window_only_mods = detected_mods.difference(spectral_library_mods)
-    spectral_library_only_mods = spectral_library_mods.difference(detected_mods)
-
-    if len(window_only_mods) > 0:
-        logger.info(
-            "Diagnostic ions were detected for some mods that are not in your spectral library: %s",
-            window_only_mods,
+    if config.library_free:
+        # TODO: validate that the path is there
+        database_path = config.database_for_library_prediction
+        mods_for_lib_creation = (
+            config.modifications_to_search
+            + config.modification_combinations
+            + ["unmodified"]
         )
+        spectral_library_files_by_mod = {}
 
-    if len(spectral_library_only_mods) > 0:
-        logger.info(
-            "Diagnostic ions for some mods in your spectral library were not detected: %s",
-            spectral_library_only_mods,
-        )
-    # TODO: add modification handling, validate that the list of search combinations does not contain single entries
+        for mods in mods_for_lib_creation:
+            library_path = result_path / f"spectral_library_{mods}"
 
-    # Split only by modifications that are also in the spectral library so that all windows with
-    # other modifications are searched as 'unmodified'.
+            var_mod_commands_for_lib = make_dia_nn_var_mod_commands(
+                mods, config.modifications_additions
+            )
+
+            # TODO: make more configurable/use extra DIA-NN config file
+            # TODO: copy the SL creation command
+            dia_nn_library_command_for_mod = [
+                f"{config.dia_nn_path}",
+                f"--f {mzml_path_for_mod}",
+                f"--lib {spectral_library_file_for_mod}",
+                f"--out {result_path}/report_{mods}.tsv",
+                "--mass-acc 10",
+                "--mass-acc-ms1 20",
+                "--window 0",
+                "--threads 8",
+                "--qvalue 1",
+                "--pg-level 2",
+                "--decoy-report",
+            ] + var_mod_commands_for_lib
+
+            logger.info(
+                "Running DIA-NN to create spectral library for mod(s) %s ...", mods
+            )
+            subprocess.run(
+                dia_nn_library_command_for_mod,
+                check=True,
+            )
+            spectral_library_files_by_mod[mods] = f"{library_path}.predicted.speclib"
+    else:
+        if config.spectral_library_files_by_mod:
+            # TODO: add validation that the keys match the mods (and combinations) to search and contains one "unmodified"
+            spectral_library_files_by_mod = config.spectral_library_files_by_mod
+        else:
+            library = pd.read_csv(
+                config.spectral_library_for_filtering_path, delimiter="\t"
+            )
+            # TODO: add including configurable mods (to search and to ignore)
+            # and throwing an error or at least a notification if the SL for one of the specified mods/combs is empty/contains only unmod spectra
+            spectral_library_df_by_mod = split_library_by_mods(
+                library, False, config.modification_combinations
+            )
+            spectral_library_files_by_mod = {}
+            for mods, library_df in spectral_library_df_by_mod.items():
+                library_path = result_path / f"spectral_library_{mods}.tsv"
+                library_df.to_csv(library_path, sep="\t")
+                spectral_library_files_by_mod[mods] = library_path
+
     detected_ions_df = detected_ions_df[
-        detected_ions_df["letter_and_unimod_format_mod"].isin(matching_mods)
+        detected_ions_df["letter_and_unimod_format_mod"].isin(
+            config.modifications_to_search
+        )
     ]
 
-    logger.info("Splitting scan windows by modifications: %s...", matching_mods)
+    logger.info("Splitting scan windows by modifications ...")
 
-    windows_by_mod = ScanWindowSplitting(
+    windows_by_mods = ScanWindowSplitting(
         config.lower_collision_energy, config.higher_collision_energy
     ).split_windows_by_mods(
         ms1_windows,
         ms1_and_lower_energy_windows,
         ms1_and_higher_energy_windows,
         detected_ions_df,
+        config.modification_combinations,
     )
 
-    logger.info("Searching for the following splits: %s.", list(windows_by_mod.keys()))
+    logger.info("Searching for the following splits: %s.", list(windows_by_mods.keys()))
 
-    for mod, windows_for_mod in windows_by_mod.items():
-        logger.info("Preparing search for modification %s...", mod)
+    for mods, windows_for_mod in windows_by_mods.items():
+        logger.info("Preparing search for modification(s) %s...", mods)
 
         logger.info(
             "Renaming spectrum IDs to satisfy condition "
@@ -125,26 +185,24 @@ def main(config_path: Path):
         )
 
         # TODO: this should probably be some temporary directory later
-        mzml_path_for_mod = result_path / f"lower_energy_windows_{mod}.mzML"
+        mzml_path_for_mod = result_path / f"lower_energy_windows_{mods}.mzML"
         output_file = get_diann_compatible_mzml_output_file()
         output_file.store(str(mzml_path_for_mod), windows_for_mod)
         logger.info(
             "Saved windows to search (MS1 and lower-energy) in %s.", mzml_path_for_mod
         )
 
-        spectrum_id_mapping_path = result_path / f"spectrum_id_mapping_{mod}.csv"
+        spectrum_id_mapping_path = result_path / f"spectrum_id_mapping_{mods}.csv"
         spectrum_id_mapping.to_csv(spectrum_id_mapping_path, index=False)
         logger.info(
             "Saved mapping from original to renamed spectrum IDs in %s.",
             spectrum_id_mapping_path,
         )
 
-        spectral_library_file_for_mod = spectral_library_files_by_mod[mod]
+        spectral_library_file_for_mod = spectral_library_files_by_mod[mods]
 
-        var_mod_command_for_mod = (
-            ""
-            if mod == "unmodified"
-            else f"--var-mod {modification_unimod_format_to_dia_nn_varmod_format(mod)}"
+        var_mod_commands_for_mods = make_dia_nn_var_mod_commands(
+            mods, config.modifications_additions
         )
 
         # TODO: make more configurable/use extra DIA-NN config file
@@ -152,7 +210,7 @@ def main(config_path: Path):
             f"{config.dia_nn_path}",
             f"--f {mzml_path_for_mod}",
             f"--lib {spectral_library_file_for_mod}",
-            f"--out {result_path}/report_{mod}.tsv",
+            f"--out {result_path}/report_{mods}.tsv",
             "--mass-acc 10",
             "--mass-acc-ms1 20",
             "--window 0",
@@ -160,12 +218,11 @@ def main(config_path: Path):
             "--qvalue 1",
             "--pg-level 2",
             "--decoy-report",
-            var_mod_command_for_mod,
-        ]
+        ] + var_mod_commands_for_mods
 
         logger.info(
             "DIA-NN command to run for modification %s is %s. Starting DIA-NN run...",
-            mod,
+            mods,
             dia_nn_command_for_mod,
         )
 
@@ -174,7 +231,7 @@ def main(config_path: Path):
             check=True,
         )
 
-        logger.info("DIA-NN run for modification %s has finished.", mod)
+        logger.info("DIA-NN run for modification %s has finished.", mods)
 
         # and do some aggregation
 

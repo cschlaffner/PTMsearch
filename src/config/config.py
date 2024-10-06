@@ -1,11 +1,12 @@
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Union
+from typing import Dict, List, Tuple, Union
 
 
 @dataclass
 class Config:
+    # TODO: set some defaults(?)
     result_dir: str
     # TODO: allow multiple files to allow multi-run
     mzml_file: str
@@ -13,6 +14,11 @@ class Config:
     # TODO: change later (this setting is WIP)
     spectral_library_files_by_mod: Dict[str, str]
     spectral_library_for_filtering_path: str
+    library_free: bool
+    database_for_library_prediction: str
+    modifications_to_search: List[str]
+    modification_combinations: List[Tuple[str]]
+    modifications_additions: List[str]
     lower_collision_energy: Union[float, int]
     higher_collision_energy: Union[float, int]
     known_diagnostic_ions_file: str
