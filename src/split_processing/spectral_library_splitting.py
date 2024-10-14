@@ -1,5 +1,5 @@
 import re
-from typing import Dict, List, Tuple
+from typing import Dict, FrozenSet, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -11,10 +11,11 @@ from src.diagnostic_ions.utils import diff_mono_mass_to_unimod_format
 def split_library_by_mods(
     spectrum_library: pd.DataFrame,
     has_unimod_format: bool,
-    mod_combinations_to_search: List[Tuple[str]],
+    mod_combinations_to_search: Optional[FrozenSet[Tuple[str]]] = None,
 ) -> Dict[str, pd.DataFrame]:
+
     library_entry_lists_by_mods: Dict[str, List] = {}
-    unimod_regex = re.compile(".(UniMod:[0-9]+)")
+    unimod_regex = re.compile(r".\(UniMod:[0-9]+\)")
     mass_diff_regex = re.compile(r".\[[0-9]+.[0-9]+\]")
 
     for lib_entry in spectrum_library.itertuples(index=False):
@@ -45,12 +46,15 @@ def split_library_by_mods(
                 library_entry_lists_by_mods[mod].append(lib_entry_df)
 
         # Mod combination searches
-        for mod_combination in mod_combinations_to_search:
-            if set(mods).issubset(set(mod_combination)):
-                if mod_combination not in library_entry_lists_by_mods:
-                    library_entry_lists_by_mods[mod_combination] = [lib_entry_df]
-                else:
-                    library_entry_lists_by_mods[mod_combination].append(lib_entry_df)
+        if mod_combinations_to_search is not None:
+            for mod_combination in mod_combinations_to_search:
+                if set(mods).issubset(mod_combination):
+                    if mod_combination not in library_entry_lists_by_mods:
+                        library_entry_lists_by_mods[mod_combination] = [lib_entry_df]
+                    else:
+                        library_entry_lists_by_mods[mod_combination].append(
+                            lib_entry_df
+                        )
 
     # Add unmodified entries to all other libraries
     for mod in library_entry_lists_by_mods:

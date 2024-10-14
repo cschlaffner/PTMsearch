@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Optional, FrozenSet, Union
 
 import numpy as np
 import pandas as pd
@@ -131,19 +131,20 @@ class ScanWindowSplitting:
         # Group detected ions by mod combinations
         detected_ions_df = (
             detected_ions_df.groupby("spectrum_id")["letter_and_unimod_format_mod"]
-            .apply(list)
+            .apply(frozenset)
             .to_frame()
         )
 
         higher_energy_windows_detected_ions_df = detected_ions_df.join(
             higher_energy_windows_df, on="spectrum_id", how="right"
         )
+
         higher_energy_windows_detected_ions_df.loc[
             higher_energy_windows_detected_ions_df[
                 "letter_and_unimod_format_mod"
             ].isna(),
             "letter_and_unimod_format_mod",
-        ] = ["unmodified"]
+        ] = "unmodified"
 
         return higher_energy_windows_detected_ions_df
 
@@ -178,7 +179,7 @@ class ScanWindowSplitting:
         self,
         ms1_windows_df: pd.DataFrame,
         windows_with_detected_ions_df: pd.DataFrame,
-        mod_combinations_to_search: List[Tuple[str]],
+        mod_combinations_to_search: List[FrozenSet[str]],
     ) -> Dict[str, MSExperiment]:
         """Creates an MSExperiment per modification containing all lower-energy spectra
         (listed with their corresponding MS1 spectra to enable searching).
@@ -199,7 +200,10 @@ class ScanWindowSplitting:
             mod_combination,
             spectra_for_mod_df,
         ) in windows_with_detected_ions_df.groupby("letter_and_unimod_format_mod"):
-            if mod_combination in mod_combinations_to_search:
+            if (
+                mod_combination == "unmodified"
+                or mod_combination in mod_combinations_to_search
+            ):
                 windows_df_by_mods_combinations[mod_combination] = spectra_for_mod_df
             else:
                 for mod in mod_combination:
@@ -249,7 +253,7 @@ class ScanWindowSplitting:
         ms1_and_lower_energy_windows: MSExperiment,
         ms1_and_higher_energy_windows: MSExperiment,
         detected_ions_df: pd.DataFrame,
-        mod_combinations_to_search: List[Tuple[str]],
+        mod_combinations_to_search: Optional[List[FrozenSet[str]]] = None,
     ) -> Dict[str, MSExperiment]:
         """Expects the input MSExperiments to be originally extracted from the same
         MSExperiment containing higher- and lower-energy scan windows and the ions
@@ -264,6 +268,9 @@ class ScanWindowSplitting:
         windows without a diagnostic ion are grouped into 'unmodified'. If no diagnostic
         ions are given, all windows are grouped into 'unmodified'
         """
+        if mod_combinations_to_search is None:
+            mod_combinations_to_search = []
+
         self._validate_spectra_mslevel_and_collision_energy(
             ms1_windows, ms1_and_lower_energy_windows, ms1_and_higher_energy_windows
         )

@@ -104,36 +104,38 @@ def main(config_path: Path):
         spectral_library_files_by_mod = {}
 
         for mods in mods_for_lib_creation:
-            library_path = result_path / f"spectral_library_{mods}"
+            library_path_for_diann = result_path / f"spectral_library_{mods}"
+            predicted_library_path = Path(f"{library_path_for_diann}.predicted.speclib")
 
-            var_mod_commands_for_lib = make_dia_nn_var_mod_commands(
-                mods, config.modifications_additions
-            )
+            if not predicted_library_path.exists():
+                var_mod_commands_for_lib = make_dia_nn_var_mod_commands(
+                    mods, config.modifications_additions
+                )
 
-            # TODO: make more configurable/use extra DIA-NN config file
-            # TODO: copy the SL creation command
-            dia_nn_library_command_for_mod = [
-                f"{config.dia_nn_path}",
-                f"--f {mzml_path_for_mod}",
-                f"--lib {spectral_library_file_for_mod}",
-                f"--out {result_path}/report_{mods}.tsv",
-                "--mass-acc 10",
-                "--mass-acc-ms1 20",
-                "--window 0",
-                "--threads 8",
-                "--qvalue 1",
-                "--pg-level 2",
-                "--decoy-report",
-            ] + var_mod_commands_for_lib
+                # TODO: make more configurable/use extra DIA-NN config file
+                # TODO: copy the SL creation command
+                dia_nn_library_command_for_mod = [
+                    f"{config.dia_nn_path}",
+                    f"--f {mzml_path_for_mod}",
+                    f"--lib {spectral_library_file_for_mod}",
+                    f"--out {result_path}/report_{mods}.tsv",
+                    "--mass-acc 10",
+                    "--mass-acc-ms1 20",
+                    "--window 0",
+                    "--threads 8",
+                    "--qvalue 1",
+                    "--pg-level 2",
+                    "--decoy-report",
+                ] + var_mod_commands_for_lib
 
-            logger.info(
-                "Running DIA-NN to create spectral library for mod(s) %s ...", mods
-            )
-            subprocess.run(
-                dia_nn_library_command_for_mod,
-                check=True,
-            )
-            spectral_library_files_by_mod[mods] = f"{library_path}.predicted.speclib"
+                logger.info(
+                    "Running DIA-NN to create spectral library for mod(s) %s ...", mods
+                )
+                subprocess.run(
+                    dia_nn_library_command_for_mod,
+                    check=True,
+                )
+            spectral_library_files_by_mod[mods] = predicted_library_path
     else:
         if config.spectral_library_files_by_mod:
             # TODO: add validation that the keys match the mods (and combinations) to search and contains one "unmodified"

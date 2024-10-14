@@ -1,7 +1,7 @@
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Tuple, Union
+from typing import Dict, FrozenSet, List, Union
 
 
 @dataclass
@@ -17,7 +17,7 @@ class Config:
     library_free: bool
     database_for_library_prediction: str
     modifications_to_search: List[str]
-    modification_combinations: List[Tuple[str]]
+    modification_combinations: List[FrozenSet[str]]
     modifications_additions: List[str]
     lower_collision_energy: Union[float, int]
     higher_collision_energy: Union[float, int]
