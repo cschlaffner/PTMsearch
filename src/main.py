@@ -2,7 +2,7 @@ import logging
 import subprocess
 from argparse import ArgumentParser
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import List, FrozenSet, Union
 
 import pandas as pd
 from pyopenms import MSExperiment, MzMLFile
@@ -21,17 +21,16 @@ logging.basicConfig(level=logging.INFO)
 
 # TODO: maybe move this to utils file
 def make_dia_nn_var_mod_commands(
-    mods: Union[str, Tuple[str]], additional_mods: List[str]
+    mods: List[Union[str, FrozenSet[str]]], additional_mods: List[str]
 ) -> List[str]:
     # add all modifications from the combination (or single mod)
     if mods == "unmodified":
         var_mod_commands = []
     else:
-        if isinstance(mods, str):
-            mods = [mods]
+        mods_list = [mods] if isinstance(mods, str) else mods
         var_mod_commands = [
             f"--var-mod {modification_unimod_format_to_dia_nn_varmod_format(mod)}"
-            for mod in mods
+            for mod in mods_list
         ]
 
     # add all mods that should be searched additionally
@@ -65,22 +64,23 @@ def main(config_path: Path):
 
     ms1_and_lower_energy_windows = extractor.extract_ms1_and_lower_energy_windows(exp)
 
-    logger.info("Searching for diagnostic ions in higher-energy spectra...")
-    # TODO: skip the search if there is already a detection file in the directory.
-
-    detected_ions_df = DiagnosticIonDetector(
-        Path(config.known_diagnostic_ions_file),
-        config.diagnostic_ions_mass_tolerance,
-        config.diagnostic_ions_mass_tolerance_unit,
-        config.snr_threshold,
-        config.higher_collision_energy,
-    ).extract_diagnostic_ions_for_spectra(higher_energy_windows.getSpectra())
-
     ions_file = result_path / "detected_ions.csv"
 
-    detected_ions_df.to_csv(ions_file, index=False)
+    if not ions_file.exists():
+        logger.info("Searching for diagnostic ions in higher-energy spectra...")
 
-    logger.info("Saved diagnostic ion detection results in %s.", ions_file)
+        detected_ions_df = DiagnosticIonDetector(
+            Path(config.known_diagnostic_ions_file),
+            config.diagnostic_ions_mass_tolerance,
+            config.diagnostic_ions_mass_tolerance_unit,
+            config.snr_threshold,
+            config.higher_collision_energy,
+        ).extract_diagnostic_ions_for_spectra(higher_energy_windows.getSpectra())
+
+        detected_ions_df.to_csv(ions_file, index=False)
+        logger.info("Saved diagnostic ion detection results in %s.", ions_file)
+    else:
+        detected_ions_df = pd.read_csv(ions_file)
 
     # TODO: add intermediate output of the results as plots and/or list the combinations
     # Have an option for that.
@@ -113,23 +113,32 @@ def main(config_path: Path):
                 )
 
                 # TODO: make more configurable/use extra DIA-NN config file
-                # TODO: copy the SL creation command
                 dia_nn_library_command_for_mod = [
                     f"{config.dia_nn_path}",
-                    f"--f {mzml_path_for_mod}",
-                    f"--lib {spectral_library_file_for_mod}",
-                    f"--out {result_path}/report_{mods}.tsv",
-                    "--mass-acc 10",
-                    "--mass-acc-ms1 20",
-                    "--window 0",
+                    "--gen-spec-lib",
+                    "--fasta-search",
+                    "--predictor",
+                    "--cut K*,R*",
                     "--threads 8",
-                    "--qvalue 1",
+                    "--min-pep-len 7",
+                    "--max-pep-len 30",
+                    "--max-pr-charge 4",
+                    "--min-pr-mz 350",
+                    "--max-pr-mz 1200",
+                    "--min-fr-mz 200",
+                    "--max-fr-mz 2000",
+                    "--missed-cleavages 2",
+                    "--strip-unknown-mods",
+                    "--var-mods 3",
                     "--pg-level 2",
-                    "--decoy-report",
+                    f"--out-lib {library_path_for_diann}",
+                    f"--fasta {config.database_for_library_prediction}",
                 ] + var_mod_commands_for_lib
 
                 logger.info(
-                    "Running DIA-NN to create spectral library for mod(s) %s ...", mods
+                    "Running DIA-NN to create spectral library for mod(s) %s  with command %s...",
+                    mods,
+                    dia_nn_library_command_for_mod
                 )
                 subprocess.run(
                     dia_nn_library_command_for_mod,

@@ -5,8 +5,21 @@
     "diagnostic_ions_mass_tolerance": 10.0,
     "diagnostic_ions_mass_tolerance_unit": "ppm",
     "snr_threshold": 3,
-    "result_dir": "../workflow_test_tolerance_snr3_10ppm",
+    "result_dir": "../workflow_test_tolerance_snr3_10ppm_all_mods_with_combinations",
     "mzml_file": "../proteomics_data/230928_JL_Immonium_ions_Modified_DIA.mzML",
     "dia_nn_path": "../diann/diann-1.8.1",
-    "spectral_library_files_by_mod": {"unmodified": "../proteomics_data/library_filtered_database/in_silico_library_filtered_unmodified.predicted.speclib", "Y(UniMod:21)": "../proteomics_data/library_filtered_database/in_silico_library_filtered_phospho.predicted.speclib"}
+    "spectral_library_files_by_mod": {},
+    "spectral_library_for_filtering_path": "",
+    "library_free": true,
+    "database_for_library_prediction": "../proteomics_data/database_for_diann/uniprotkb_AND_reviewed_true_AND_model_o_2024_07_16_with_crap_and_synthetic_filtered.fasta",
+    "modifications_to_search": ["K(UniMod:1)", "K(UniMod:3)","K(UniMod:36)", "K(UniMod:34)","K(UniMod:37)", "P(UniMod:35)", "Y(UniMod:354)", "Y(UniMod:21)"],
+    "modification_combinations":[["K(UniMod:1)", "P(UniMod:35)"],
+    ["K(UniMod:1)", "K(UniMod:34)", "Y(UniMod:354)", "Y(UniMod:21)"],
+    ["K(UniMod:1)", "P(UniMod:35)", "Y(UniMod:21)"],
+    ["K(UniMod:1)", "K(UniMod:34)", "P(UniMod:35)"],
+    ["K(UniMod:1)", "K(UniMod:34)", "Y(UniMod:21)"],
+    ["K(UniMod:1)", "K(UniMod:34)", "P(UniMod:35)", "Y(UniMod:354)", "Y(UniMod:21)"],
+    ["K(UniMod:1)", "Y(UniMod:21)"],
+    ["K(UniMod:1)", "K(UniMod:34)", "P(UniMod:35)", "Y(UniMod:21)"]],
+    "modifications_additions": ["M(UniMod:35)"]
 }

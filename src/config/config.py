@@ -30,4 +30,9 @@ class Config:
     def from_path(cls, config_path: Path):
         with open(config_path, "r") as config_file:
             config_json = json.load(config_file)
+            mods_combinations = [
+                frozenset(combination)
+                for combination in config_json["modification_combinations"]
+            ]
+            config_json["modification_combinations"] = mods_combinations
         return cls(**config_json)
