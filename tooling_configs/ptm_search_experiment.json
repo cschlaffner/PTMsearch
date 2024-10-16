@@ -21,5 +21,5 @@
     ["K(UniMod:1)", "K(UniMod:34)", "P(UniMod:35)", "Y(UniMod:354)", "Y(UniMod:21)"],
     ["K(UniMod:1)", "Y(UniMod:21)"],
     ["K(UniMod:1)", "K(UniMod:34)", "P(UniMod:35)", "Y(UniMod:21)"]],
-    "modifications_additions": ["M(UniMod:35)"]
+    "modifications_additions": []
 }

@@ -42,10 +42,16 @@ def make_dia_nn_var_mod_commands(
     return var_mod_commands
 
 
+def get_mod_combination_str(mod_combination: Union[str, FrozenSet[str]]) -> str:
+    if isinstance(mod_combination, str):
+        return mod_combination
+    return "_".join(sorted(mod_combination))
+
+
 def main(config_path: Path):
     config = Config.from_path(config_path)
     result_path = Path(config.result_dir)
-
+    # TODO. write logging to file
     logger.info("Loading spectra...")
 
     exp = MSExperiment()
@@ -83,14 +89,14 @@ def main(config_path: Path):
         detected_ions_df = pd.read_csv(ions_file)
 
     # TODO: add intermediate output of the results as plots and/or list the combinations
-    # Have an option for that.
+    # Have an option for running only until this point.
 
     # TODO: add validation that config mod combinations are not single mods and all mods in comb. have to be listed in mod list
 
     logger.info(
         "Considering only mods %s and combinations %s for window splitting and spectrum library handling.",
         config.modifications_to_search,
-        config.modification_combinations,
+        [get_mod_combination_str(mod_combination) for mod_combination in config.modification_combinations],
     )
 
     if config.library_free:
@@ -104,7 +110,8 @@ def main(config_path: Path):
         spectral_library_files_by_mod = {}
 
         for mods in mods_for_lib_creation:
-            library_path_for_diann = result_path / f"spectral_library_{mods}"
+            mod_combination_str = get_mod_combination_str(mods)
+            library_path_for_diann = result_path / f"spectral_library_{mod_combination_str}"
             predicted_library_path = Path(f"{library_path_for_diann}.predicted.speclib")
 
             if not predicted_library_path.exists():
@@ -131,13 +138,18 @@ def main(config_path: Path):
                     "--strip-unknown-mods",
                     "--var-mods 3",
                     "--pg-level 2",
-                    f"--out-lib {library_path_for_diann}",
-                    f"--fasta {config.database_for_library_prediction}",
+                    # DIA-NN does automatic extension removal for the library path,
+                    # i.e. takes the path before the last '.', so if there is a '.'
+                    # in the path to the result directory, the resulting library
+                    # path is messed up. That is the reason
+                    # for this unnecessary .predicted here.
+                    f'--out-lib {library_path_for_diann}.predicted',
+                    f"--fasta {database_path}",
                 ] + var_mod_commands_for_lib
 
                 logger.info(
                     "Running DIA-NN to create spectral library for mod(s) %s  with command %s...",
-                    mods,
+                    mod_combination_str,
                     dia_nn_library_command_for_mod
                 )
                 subprocess.run(
@@ -160,7 +172,7 @@ def main(config_path: Path):
             )
             spectral_library_files_by_mod = {}
             for mods, library_df in spectral_library_df_by_mod.items():
-                library_path = result_path / f"spectral_library_{mods}.tsv"
+                library_path = result_path / f"spectral_library_{get_mod_combination_str(mods)}.tsv"
                 library_df.to_csv(library_path, sep="\t")
                 spectral_library_files_by_mod[mods] = library_path
 
@@ -185,7 +197,8 @@ def main(config_path: Path):
     logger.info("Searching for the following splits: %s.", list(windows_by_mods.keys()))
 
     for mods, windows_for_mod in windows_by_mods.items():
-        logger.info("Preparing search for modification(s) %s...", mods)
+        mod_combination_str = get_mod_combination_str(mods)
+        logger.info("Preparing search for modification(s) %s...", mod_combination_str)
 
         logger.info(
             "Renaming spectrum IDs to satisfy condition "
@@ -196,14 +209,14 @@ def main(config_path: Path):
         )
 
         # TODO: this should probably be some temporary directory later
-        mzml_path_for_mod = result_path / f"lower_energy_windows_{mods}.mzML"
+        mzml_path_for_mod = result_path / f"lower_energy_windows_{mod_combination_str}.mzML"
         output_file = get_diann_compatible_mzml_output_file()
         output_file.store(str(mzml_path_for_mod), windows_for_mod)
         logger.info(
             "Saved windows to search (MS1 and lower-energy) in %s.", mzml_path_for_mod
         )
 
-        spectrum_id_mapping_path = result_path / f"spectrum_id_mapping_{mods}.csv"
+        spectrum_id_mapping_path = result_path / f"spectrum_id_mapping_{mod_combination_str}.csv"
         spectrum_id_mapping.to_csv(spectrum_id_mapping_path, index=False)
         logger.info(
             "Saved mapping from original to renamed spectrum IDs in %s.",
@@ -221,7 +234,7 @@ def main(config_path: Path):
             f"{config.dia_nn_path}",
             f"--f {mzml_path_for_mod}",
             f"--lib {spectral_library_file_for_mod}",
-            f"--out {result_path}/report_{mods}.tsv",
+            f"--out {result_path}/report_{mod_combination_str}.tsv",
             "--mass-acc 10",
             "--mass-acc-ms1 20",
             "--window 0",
@@ -229,20 +242,26 @@ def main(config_path: Path):
             "--qvalue 1",
             "--pg-level 2",
             "--decoy-report",
+            "--no-prot-inf",
         ] + var_mod_commands_for_mods
 
         logger.info(
             "DIA-NN command to run for modification %s is %s. Starting DIA-NN run...",
-            mods,
+            mod_combination_str,
             dia_nn_command_for_mod,
         )
 
-        subprocess.run(
-            dia_nn_command_for_mod,
-            check=True,
-        )
+        try:
+            subprocess.run(
+                dia_nn_command_for_mod,
+                # TODO: print warning if it fails
+                check=True,
+            )
+            logger.info("DIA-NN run for modification %s has finished.", mod_combination_str)
+        except subprocess.CalledProcessError as e:
+            # TODO: capture error message
+            logger.warning("DIA-NN run for modification %s crashed.", mod_combination_str)
 
-        logger.info("DIA-NN run for modification %s has finished.", mods)
 
         # and do some aggregation
 
