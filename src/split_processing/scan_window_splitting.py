@@ -1,4 +1,5 @@
-from typing import Dict, List, Optional, FrozenSet, Union
+import re
+from typing import Dict, FrozenSet, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -223,9 +224,18 @@ class ScanWindowSplitting:
             mod_combination,
             spectra_for_mod_df,
         ) in windows_df_by_mods_combinations.items():
-            # TODO: check if one of the sorting columns is actually the index
+            # Add numeric column for sorting by MS1 id
+            ms1_id_number = np.array(
+                [
+                    int(re.findall("[0-9]+", id_string)[-1])
+                    for id_string in spectra_for_mod_df.index.get_level_values(0)
+                ]
+            )
+            spectra_for_mod_df.insert(
+                len(spectra_for_mod_df.columns), "ms1_id_number", ms1_id_number
+            )
             spectra_for_mod_df.sort_values(
-                ["ms1_spectrum_id", "ms2_spectrum_mz"], inplace=True
+                ["ms1_id_number", "ms2_spectrum_mz"], inplace=True
             )
 
             spectra_list_for_mod = np.array([])

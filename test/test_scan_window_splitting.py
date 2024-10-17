@@ -20,12 +20,13 @@ from src.split_processing.scan_window_splitting import ScanWindowSplitting
 
 ms1_spectrum_1_native_id = "ms1_id_1"
 ms1_spectrum_2_native_id = "ms1_id_2"
-ms1_spectrum_3_native_id = "ms1_id_3"
+ms1_spectrum_3_native_id = "ms1_id_10"
 
 higher_energy_spectrum_1_native_id = "ms2_id_1"
 higher_energy_spectrum_2_native_id = "ms2_id_2"
 higher_energy_spectrum_3_native_id = "ms2_id_3"
-higher_energy_spectrum_4_native_id = "ms2_id_4"
+higher_energy_spectrum_4_native_id = "ms2_id_10"
+higher_energy_spectrum_5_native_id = "ms2_id_5"
 
 precursor_mz_1 = 1.1
 precursor_mz_2 = 20.2
@@ -54,6 +55,7 @@ def spectra_ms1() -> MSExperiment:
     ms1_spectra = [
         spectrum_ms1(native_id=ms1_spectrum_1_native_id),
         spectrum_ms1(native_id=ms1_spectrum_2_native_id),
+        spectrum_ms1(native_id=ms1_spectrum_3_native_id),
     ]
     exp_ms1_spectra.setSpectra(ms1_spectra)
     return exp_ms1_spectra
@@ -72,6 +74,8 @@ def spectra_ms1_and_lower_energy_matching() -> MSExperiment:
             ms1_spectra[1],
             spectrum_ms2_lower_energy(precursor_mz=precursor_mz_1),
             spectrum_ms2_lower_energy(precursor_mz=precursor_mz_2),
+            ms1_spectra[2],
+            spectrum_ms2_lower_energy(precursor_mz=precursor_mz_1),
         ]
     )
     return exp_ms1_and_lower_energy_spectra
@@ -101,6 +105,11 @@ def spectra_ms1_and_higher_energy_matching() -> MSExperiment:
             spectrum_ms2_higher_energy(
                 native_id=higher_energy_spectrum_4_native_id,
                 precursor_mz=precursor_mz_2,
+            ),
+            ms1_spectra[2],
+            spectrum_ms2_higher_energy(
+                native_id=higher_energy_spectrum_5_native_id,
+                precursor_mz=precursor_mz_1,
             ),
         ]
     )
@@ -143,6 +152,8 @@ def spectra_matching_with_result_single_mod() -> (
         ms1_and_lower_energy_spectra[2],
         ms1_and_lower_energy_spectra[3],
         ms1_and_lower_energy_spectra[4],
+        ms1_and_lower_energy_spectra[6],
+        ms1_and_lower_energy_spectra[7],
     ]
     unmod_exp.setSpectra(unmod_spectra)
 
@@ -174,6 +185,7 @@ def detected_ions_df_multiple_mods() -> pd.DataFrame:
                 higher_energy_spectrum_4_native_id,
                 higher_energy_spectrum_4_native_id,
                 higher_energy_spectrum_4_native_id,
+                higher_energy_spectrum_5_native_id,
             ],
             "amino_acid": [
                 "Lysine",
@@ -182,8 +194,17 @@ def detected_ions_df_multiple_mods() -> pd.DataFrame:
                 "Lysine",
                 "Lysine",
                 "Tyrosine",
+                "Lysine",
             ],
-            "mod_name": ["Acetyl", "Phospho", "Acetyl", "Acetyl", "Methyl", "Phospho"],
+            "mod_name": [
+                "Acetyl",
+                "Phospho",
+                "Acetyl",
+                "Acetyl",
+                "Methyl",
+                "Phospho",
+                "Acetyl",
+            ],
             "letter_and_unimod_format_mod": [
                 "K(UniMod:1)",
                 "Y(UniMod:21)",
@@ -191,6 +212,7 @@ def detected_ions_df_multiple_mods() -> pd.DataFrame:
                 "K(UniMod:1)",
                 "K(UniMod:34)",
                 "Y(UniMod:21)",
+                "K(UniMod:1)",
             ],
         }
     )
@@ -210,6 +232,7 @@ def detected_ions_df_multiple_mods_duplicate_entries() -> pd.DataFrame:
                 higher_energy_spectrum_4_native_id,
                 higher_energy_spectrum_4_native_id,
                 higher_energy_spectrum_4_native_id,
+                higher_energy_spectrum_5_native_id,
             ],
             "amino_acid": [
                 "Lysine",
@@ -221,6 +244,7 @@ def detected_ions_df_multiple_mods_duplicate_entries() -> pd.DataFrame:
                 "Lysine",
                 "Lysine",
                 "Tyrosine",
+                "Lysine",
             ],
             "mod_name": [
                 "Acetyl",
@@ -232,6 +256,7 @@ def detected_ions_df_multiple_mods_duplicate_entries() -> pd.DataFrame:
                 "Methyl",
                 "Methyl",
                 "Phospho",
+                "Acetyl",
             ],
             "letter_and_unimod_format_mod": [
                 "K(UniMod:1)",
@@ -243,6 +268,7 @@ def detected_ions_df_multiple_mods_duplicate_entries() -> pd.DataFrame:
                 "K(UniMod:34)",
                 "K(UniMod:34)",
                 "Y(UniMod:21)",
+                "K(UniMod:1)",
             ],
         }
     )
@@ -268,6 +294,8 @@ def spectra_matching_with_result_multiple_mods() -> (
         ms1_and_lower_energy_spectra[3],
         ms1_and_lower_energy_spectra[4],
         ms1_and_lower_energy_spectra[5],
+        ms1_and_lower_energy_spectra[6],
+        ms1_and_lower_energy_spectra[7],
     ]
     mod_1_exp.setSpectra(mod_1_spectra)
 
@@ -318,6 +346,8 @@ def spectra_matching_with_result_multiple_mods_combinations_and_single() -> (
         ms1_and_lower_energy_spectra[1],
         ms1_and_lower_energy_spectra[3],
         ms1_and_lower_energy_spectra[4],
+        ms1_and_lower_energy_spectra[6],
+        ms1_and_lower_energy_spectra[7],
     ]
     mod_1_exp.setSpectra(mod_1_spectra)
 
@@ -365,6 +395,8 @@ def spectra_matching_with_result_multiple_mods_combinations() -> (
     mod_1_spectra = [
         ms1_and_lower_energy_spectra[0],
         ms1_and_lower_energy_spectra[1],
+        ms1_and_lower_energy_spectra[6],
+        ms1_and_lower_energy_spectra[7],
     ]
     mod_1_exp.setSpectra(mod_1_spectra)
 
@@ -411,6 +443,8 @@ def spectra_mismatch_higher_lower_energy_by_precursor_mz() -> Tuple[MSExperiment
             ms1_spectra[1],
             spectrum_ms2_higher_energy(precursor_mz=precursor_mz_1),
             spectrum_ms2_higher_energy(precursor_mz=precursor_mz_2 + 1),
+            ms1_spectra[2],
+            spectrum_ms2_higher_energy(precursor_mz=precursor_mz_1),
         ]
     )
     return (
@@ -448,6 +482,8 @@ def spectra_mismatch_higher_lower_energy_by_ms1() -> Tuple[MSExperiment]:
             spectrum_ms2_higher_energy(precursor_mz=precursor_mz_1),
             ms1_spectra[1],
             spectrum_ms2_higher_energy(precursor_mz=precursor_mz_2),
+            ms1_spectra[2],
+            spectrum_ms2_higher_energy(precursor_mz=precursor_mz_1),
         ]
     )
     return (
