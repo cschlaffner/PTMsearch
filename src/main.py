@@ -2,11 +2,10 @@ import logging
 import subprocess
 from argparse import ArgumentParser
 from pathlib import Path
-from typing import List, FrozenSet, Union
+from typing import FrozenSet, List, Union
 
 import pandas as pd
 from pyopenms import MSExperiment, MzMLFile
-
 from src.config.config import Config
 from src.diagnostic_ions.detection import DiagnosticIonDetector
 from src.diagnostic_ions.utils import modification_unimod_format_to_dia_nn_varmod_format
@@ -96,7 +95,10 @@ def main(config_path: Path):
     logger.info(
         "Considering only mods %s and combinations %s for window splitting and spectrum library handling.",
         config.modifications_to_search,
-        [get_mod_combination_str(mod_combination) for mod_combination in config.modification_combinations],
+        [
+            get_mod_combination_str(mod_combination)
+            for mod_combination in config.modification_combinations
+        ],
     )
 
     if config.library_free:
@@ -111,7 +113,9 @@ def main(config_path: Path):
 
         for mods in mods_for_lib_creation:
             mod_combination_str = get_mod_combination_str(mods)
-            library_path_for_diann = result_path / f"spectral_library_{mod_combination_str}"
+            library_path_for_diann = (
+                result_path / f"spectral_library_{mod_combination_str}"
+            )
             predicted_library_path = Path(f"{library_path_for_diann}.predicted.speclib")
 
             if not predicted_library_path.exists():
@@ -143,14 +147,14 @@ def main(config_path: Path):
                     # in the path to the result directory, the resulting library
                     # path is messed up. That is the reason
                     # for this unnecessary .predicted here.
-                    f'--out-lib {library_path_for_diann}.predicted',
+                    f"--out-lib {library_path_for_diann}.predicted",
                     f"--fasta {database_path}",
                 ] + var_mod_commands_for_lib
 
                 logger.info(
                     "Running DIA-NN to create spectral library for mod(s) %s  with command %s...",
                     mod_combination_str,
-                    dia_nn_library_command_for_mod
+                    dia_nn_library_command_for_mod,
                 )
                 subprocess.run(
                     dia_nn_library_command_for_mod,
@@ -172,7 +176,10 @@ def main(config_path: Path):
             )
             spectral_library_files_by_mod = {}
             for mods, library_df in spectral_library_df_by_mod.items():
-                library_path = result_path / f"spectral_library_{get_mod_combination_str(mods)}.tsv"
+                library_path = (
+                    result_path
+                    / f"spectral_library_{get_mod_combination_str(mods)}.tsv"
+                )
                 library_df.to_csv(library_path, sep="\t")
                 spectral_library_files_by_mod[mods] = library_path
 
@@ -194,7 +201,13 @@ def main(config_path: Path):
         config.modification_combinations,
     )
 
-    logger.info("Searching for the following splits: %s.", list(windows_by_mods.keys()))
+    logger.info(
+        "Searching for the following splits: %s.",
+        [
+            get_mod_combination_str(mod_combination)
+            for mod_combination in list(windows_by_mods.keys())
+        ],
+    )
 
     for mods, windows_for_mod in windows_by_mods.items():
         mod_combination_str = get_mod_combination_str(mods)
@@ -209,14 +222,18 @@ def main(config_path: Path):
         )
 
         # TODO: this should probably be some temporary directory later
-        mzml_path_for_mod = result_path / f"lower_energy_windows_{mod_combination_str}.mzML"
+        mzml_path_for_mod = (
+            result_path / f"lower_energy_windows_{mod_combination_str}.mzML"
+        )
         output_file = get_diann_compatible_mzml_output_file()
         output_file.store(str(mzml_path_for_mod), windows_for_mod)
         logger.info(
             "Saved windows to search (MS1 and lower-energy) in %s.", mzml_path_for_mod
         )
 
-        spectrum_id_mapping_path = result_path / f"spectrum_id_mapping_{mod_combination_str}.csv"
+        spectrum_id_mapping_path = (
+            result_path / f"spectrum_id_mapping_{mod_combination_str}.csv"
+        )
         spectrum_id_mapping.to_csv(spectrum_id_mapping_path, index=False)
         logger.info(
             "Saved mapping from original to renamed spectrum IDs in %s.",
@@ -257,11 +274,14 @@ def main(config_path: Path):
                 # TODO: print warning if it fails
                 check=True,
             )
-            logger.info("DIA-NN run for modification %s has finished.", mod_combination_str)
+            logger.info(
+                "DIA-NN run for modification %s has finished.", mod_combination_str
+            )
         except subprocess.CalledProcessError as e:
             # TODO: capture error message
-            logger.warning("DIA-NN run for modification %s crashed.", mod_combination_str)
-
+            logger.warning(
+                "DIA-NN run for modification %s crashed.", mod_combination_str
+            )
 
         # and do some aggregation
 
