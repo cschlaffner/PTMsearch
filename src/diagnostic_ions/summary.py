@@ -57,11 +57,16 @@ def plot_detected_ions(detected_ions_df: pd.DataFrame, result_path: Path) -> Non
     fig.savefig(result_path / "detected_ions_table.svg", bbox_inches="tight")
 
 
-def get_modification_combinations_with_counts(detected_ions_df: pd.DataFrame):
+def get_modification_combinations_with_counts(
+    detected_ions_df: pd.DataFrame, return_unimod=False
+):
+    mod_columns = (
+        ["letter_and_unimod_format_mod"]
+        if return_unimod
+        else ["amino_acid", "mod_name"]
+    )
     detected_ions_df_by_window = (
-        detected_ions_df[
-            ["spectrum_id", "amino_acid", "mod_name", "letter_and_unimod_format_mod"]
-        ]
+        detected_ions_df[["spectrum_id"] + mod_columns]
         .drop_duplicates()
         .groupby("spectrum_id")
     )
@@ -69,14 +74,7 @@ def get_modification_combinations_with_counts(detected_ions_df: pd.DataFrame):
     mods = []
     for _, group in detected_ions_df_by_window:
         mods.append(
-            [
-                ",".join(mod)
-                for mod in (
-                    group[["amino_acid", "mod_name", "letter_and_unimod_format_mod"]]
-                    .drop_duplicates()
-                    .to_numpy()
-                )
-            ]
+            [",".join(mod) for mod in (group[mod_columns].drop_duplicates().to_numpy())]
         )
 
     return np.unique(np.array(mods, dtype="object"), return_counts=True)
@@ -90,7 +88,9 @@ def plot_detected_ion_combinations(
     topk: int = 50,
     figsize: Tuple[int] = (10, 15),
 ) -> None:
-    combinations, counts = get_modification_combinations_with_counts(detected_ions_df)
+    combinations, counts = get_modification_combinations_with_counts(
+        detected_ions_df, return_unimod=False
+    )
     count_sort = np.argsort(counts)
     combinations_sorted = combinations[count_sort]
     combination_counts_sorted = counts[count_sort]
@@ -145,7 +145,9 @@ def get_detected_modifications_with_combinations(
     detection_count_min: int,
 ) -> Tuple[List[str], FrozenSet[str]]:
 
-    combinations, counts = get_modification_combinations_with_counts(detected_ions_df)
+    combinations, counts = get_modification_combinations_with_counts(
+        detected_ions_df, return_unimod=True
+    )
     count_sort = np.argsort(counts)
     combinations_sorted = combinations[count_sort][::-1]
     combination_counts_sorted = counts[count_sort][::-1]

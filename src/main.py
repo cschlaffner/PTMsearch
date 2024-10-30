@@ -14,9 +14,13 @@ from src.diagnostic_ions.summary import (
     plot_detected_ion_combinations,
     plot_detected_ions,
 )
-from src.diagnostic_ions.utils import modification_unimod_format_to_dia_nn_varmod_format
+from src.diagnostic_ions.utils import (
+    get_mod_combination_str,
+    modification_unimod_format_to_dia_nn_varmod_format,
+)
 from src.mzml_processing.extraction import ScanWindowExtractor
 from src.mzml_processing.utils import get_diann_compatible_mzml_output_file
+from src.split_processing.result_aggregation import ResultAggregation
 from src.split_processing.scan_window_splitting import ScanWindowSplitting
 from src.split_processing.spectral_library_splitting import split_library_by_mods
 
@@ -45,12 +49,6 @@ def make_dia_nn_var_mod_commands(
     ]
 
     return var_mod_commands
-
-
-def get_mod_combination_str(mod_combination: Union[str, FrozenSet[str]]) -> str:
-    if isinstance(mod_combination, str):
-        return mod_combination
-    return "_".join(sorted(mod_combination))
 
 
 def main(config_path: Path):
@@ -228,9 +226,22 @@ def main(config_path: Path):
         ],
     )
 
+    file_paths_by_mods = {}
+
     for mods, windows_for_mod in windows_by_mods.items():
         mod_combination_str = get_mod_combination_str(mods)
         logger.info("Preparing search for modification(s) %s...", mod_combination_str)
+
+        dia_nn_report_path = f"{result_path}/report_{mod_combination_str}.tsv"
+        spectrum_id_mapping_path = (
+            result_path / f"spectrum_id_mapping_{mod_combination_str}.csv"
+        )
+        mzml_path = result_path / f"lower_energy_windows_{mod_combination_str}.mzML"
+        file_paths_by_mods[mods] = {
+            "dia_nn_report_path": dia_nn_report_path,
+            "mzml_path": mzml_path,
+            "spectrum_id_mapping_path": spectrum_id_mapping_path,
+        }
 
         logger.info(
             "Renaming spectrum IDs to satisfy condition "
@@ -240,19 +251,10 @@ def main(config_path: Path):
             windows_for_mod, return_id_mapping=True
         )
 
-        # TODO: this should probably be some temporary directory later
-        mzml_path_for_mod = (
-            result_path / f"lower_energy_windows_{mod_combination_str}.mzML"
-        )
         output_file = get_diann_compatible_mzml_output_file()
-        output_file.store(str(mzml_path_for_mod), windows_for_mod)
-        logger.info(
-            "Saved windows to search (MS1 and lower-energy) in %s.", mzml_path_for_mod
-        )
+        output_file.store(str(mzml_path), windows_for_mod)
+        logger.info("Saved windows to search (MS1 and lower-energy) in %s.", mzml_path)
 
-        spectrum_id_mapping_path = (
-            result_path / f"spectrum_id_mapping_{mod_combination_str}.csv"
-        )
         spectrum_id_mapping.to_csv(spectrum_id_mapping_path, index=False)
         logger.info(
             "Saved mapping from original to renamed spectrum IDs in %s.",
@@ -268,9 +270,9 @@ def main(config_path: Path):
         # TODO: make more configurable/use extra DIA-NN config file
         dia_nn_command_for_mod = [
             f"{config.dia_nn_path}",
-            f"--f {mzml_path_for_mod}",
+            f"--f {mzml_path}",
             f"--lib {spectral_library_file_for_mod}",
-            f"--out {result_path}/report_{mod_combination_str}.tsv",
+            f"--out {dia_nn_report_path}",
             "--mass-acc 10",
             "--mass-acc-ms1 20",
             "--window 0",
@@ -302,7 +304,17 @@ def main(config_path: Path):
                 "DIA-NN run for modification %s crashed.", mod_combination_str
             )
 
-        # and do some aggregation
+    aggregation = ResultAggregation(config.fdr_threshold)
+    report_all_targets_with_decoys, report_fdr_filtered = aggregation.aggregate_results(
+        result_path, file_paths_by_mods
+    )
+
+    report_all_targets_with_decoys.to_csv(
+        result_path / "report_aggregated_all_targets_with_decoys", index=False
+    )
+    report_fdr_filtered.to_csv(
+        result_path / "report_aggregated_fdr_filtered", index=False
+    )
 
 
 if __name__ == "__main__":

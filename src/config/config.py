@@ -27,6 +27,7 @@ class Config:
     snr_threshold: Union[float, int]
     detection_count_percentile: float
     detection_count_min: int
+    fdr_threshold: float
 
     @classmethod
     def from_path(cls, config_path: Path):

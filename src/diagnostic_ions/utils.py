@@ -1,4 +1,5 @@
 import re
+from typing import FrozenSet, Union
 
 from pyopenms import ModificationsDB, ResidueDB
 
@@ -39,3 +40,9 @@ def diff_mono_mass_to_unimod_format(
         diff_mono_mass, 0.0001, amino_acid_letter, 0
     ).getUniModAccession()
     return f"{amino_acid_letter}({unimod_accession})"
+
+
+def get_mod_combination_str(mod_combination: Union[str, FrozenSet[str]]) -> str:
+    if isinstance(mod_combination, str):
+        return mod_combination
+    return "_".join(sorted(mod_combination))
