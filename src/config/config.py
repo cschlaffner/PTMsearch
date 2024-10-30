@@ -25,6 +25,8 @@ class Config:
     diagnostic_ions_mass_tolerance: Union[float, int]
     diagnostic_ions_mass_tolerance_unit: str
     snr_threshold: Union[float, int]
+    detection_count_percentile: float
+    detection_count_min: int
 
     @classmethod
     def from_path(cls, config_path: Path):

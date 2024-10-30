@@ -6,8 +6,14 @@ from typing import FrozenSet, List, Union
 
 import pandas as pd
 from pyopenms import MSExperiment, MzMLFile
+
 from src.config.config import Config
 from src.diagnostic_ions.detection import DiagnosticIonDetector
+from src.diagnostic_ions.summary import (
+    get_detected_modifications_with_combinations,
+    plot_detected_ion_combinations,
+    plot_detected_ions,
+)
 from src.diagnostic_ions.utils import modification_unimod_format_to_dia_nn_varmod_format
 from src.mzml_processing.extraction import ScanWindowExtractor
 from src.mzml_processing.utils import get_diann_compatible_mzml_output_file
@@ -83,6 +89,11 @@ def main(config_path: Path):
         ).extract_diagnostic_ions_for_spectra(higher_energy_windows.getSpectra())
 
         detected_ions_df.to_csv(ions_file, index=False)
+        plot_detected_ions(detected_ions_df, result_path)
+        plot_detected_ion_combinations(
+            detected_ions_df, result_path, config.detection_count_percentile
+        )
+
         logger.info("Saved diagnostic ion detection results in %s.", ions_file)
     else:
         detected_ions_df = pd.read_csv(ions_file)
@@ -90,24 +101,38 @@ def main(config_path: Path):
     # TODO: add intermediate output of the results as plots and/or list the combinations
     # Have an option for running only until this point.
 
-    # TODO: add validation that config mod combinations are not single mods and all mods in comb. have to be listed in mod list
+    if config.modifications_to_search != []:
+        modifications_to_search = config.modifications_to_search
+        modification_combinations = config.modification_combinations
+        # TODO: add validation that config mod combinations are not single mods and all mods in comb. have to be listed in mod list
+    else:
+        modifications_to_search, modification_combinations = (
+            get_detected_modifications_with_combinations(
+                detected_ions_df,
+                config.detection_count_percentile,
+                config.detection_count_min,
+            )
+        )
+
+    detected_ions_df = detected_ions_df[
+        detected_ions_df["letter_and_unimod_format_mod"].isin(modifications_to_search)
+    ]
 
     logger.info(
         "Considering only mods %s and combinations %s for window splitting and spectrum library handling.",
-        config.modifications_to_search,
+        modifications_to_search,
         [
             get_mod_combination_str(mod_combination)
-            for mod_combination in config.modification_combinations
+            for mod_combination in modification_combinations
         ],
     )
+    # TODO: add information about additional combinations
 
     if config.library_free:
         # TODO: validate that the path is there
         database_path = config.database_for_library_prediction
         mods_for_lib_creation = (
-            config.modifications_to_search
-            + config.modification_combinations
-            + ["unmodified"]
+            modifications_to_search + modification_combinations + ["unmodified"]
         )
         spectral_library_files_by_mod = {}
 
@@ -172,7 +197,7 @@ def main(config_path: Path):
             # TODO: add including configurable mods (to search and to ignore)
             # and throwing an error or at least a notification if the SL for one of the specified mods/combs is empty/contains only unmod spectra
             spectral_library_df_by_mod = split_library_by_mods(
-                library, False, config.modification_combinations
+                library, False, modification_combinations
             )
             spectral_library_files_by_mod = {}
             for mods, library_df in spectral_library_df_by_mod.items():
@@ -183,12 +208,6 @@ def main(config_path: Path):
                 library_df.to_csv(library_path, sep="\t")
                 spectral_library_files_by_mod[mods] = library_path
 
-    detected_ions_df = detected_ions_df[
-        detected_ions_df["letter_and_unimod_format_mod"].isin(
-            config.modifications_to_search
-        )
-    ]
-
     logger.info("Splitting scan windows by modifications ...")
 
     windows_by_mods = ScanWindowSplitting(
@@ -198,7 +217,7 @@ def main(config_path: Path):
         ms1_and_lower_energy_windows,
         ms1_and_higher_energy_windows,
         detected_ions_df,
-        config.modification_combinations,
+        modification_combinations,
     )
 
     logger.info(
