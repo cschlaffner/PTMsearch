@@ -17,17 +17,12 @@ class ResultAggregation:
         df.loc[:, "Precursor.Id"] = df["Modified.Sequence"]
         df.loc[:, "CScore"] = df["RT.Start"]
 
-        df.insert(
-            len(df.columns), "remapped_ids", np.repeat(np.nan, len(df)), inplace=True
-        )
-        df.insert(
-            len(df.columns), "original_ids", np.repeat(np.nan, len(df)), inplace=True
-        )
+        df.insert(len(df.columns), "remapped_ids", np.repeat(np.nan, len(df)))
+        df.insert(len(df.columns), "original_ids", np.repeat(np.nan, len(df)))
         df.insert(
             len(df.columns),
             "higher_energy_ids",
             np.repeat(np.nan, len(df)),
-            inplace=True,
         )
 
     def _get_id_number(self, id_string):
@@ -39,7 +34,6 @@ class ResultAggregation:
         return f"controllerType=0 controllerNumber=1 scan={higher_energy_id_number}"
 
     def _get_df_with_original_and_higher_energy_id_mapped(self, df, exp, mapping_df):
-        df = df.copy()
         ms2_spectra = np.array(
             [spectrum for spectrum in exp.getSpectra() if spectrum.getMSLevel() == 2]
         )
@@ -48,7 +42,6 @@ class ResultAggregation:
             len(df.columns),
             "remapped_ids",
             [s.getNativeID() for s in ms2_spectra_in_df],
-            inplace=True,
         )
         df.insert(
             len(df.columns),
@@ -57,7 +50,6 @@ class ResultAggregation:
                 mapping_df.loc[remapped_id]["original_id"]
                 for remapped_id in df["remapped_ids"]
             ],
-            inplace=True,
         )
         higher_energy_id_number = np.array(
             [
@@ -66,7 +58,7 @@ class ResultAggregation:
             ]
         )
         df.insert(
-            len(df.columns), "higher_energy_ids", higher_energy_id_number, inplace=True
+            len(df.columns), "higher_energy_ids", higher_energy_id_number
         )
 
     def _qvalues_for_cscores(
@@ -98,17 +90,15 @@ class ResultAggregation:
         )
 
         targets_df.insert(
-            len(targets_df.columns), "q_value_aggregated", qvalues_targets, inplace=True
+            len(targets_df.columns), "q_value_aggregated", qvalues_targets
         )
         decoys_df.insert(
-            len(decoys_df.columns), "q_value_aggregated", qvalues_decoys, inplace=True
+            len(decoys_df.columns), "q_value_aggregated", qvalues_decoys
         )
 
     def get_mods_unmods_all_from_splits(self, file_paths_by_mods):
-        result_mods = set(file_paths_by_mods.keys()).difference({"unmodified"})
-
         splits_results = {}
-        for mods in result_mods:
+        for mods in file_paths_by_mods:
             file_paths = file_paths_by_mods[mods]
 
             dia_nn_report_df = pd.read_csv(
@@ -119,7 +109,7 @@ class ResultAggregation:
             )
 
             exp = MSExperiment()
-            MzMLFile().load(file_paths["mzml_path"], exp)
+            MzMLFile().load(str(file_paths["mzml_path"]), exp)
 
             # to account for mismatching columns in result tsv for decoys
             decoys = dia_nn_report_df[dia_nn_report_df["Q.Value"].isna()]
@@ -143,7 +133,7 @@ class ResultAggregation:
             ignore_index=True,
         )
         mods_decoys = pd.concat(
-            [mod_result["decoys"] for mod_result in splits_results.values()],
+            [mod_result["decoys"] for mod_result in mods_splits.values()],
             ignore_index=True,
         )
 
@@ -201,5 +191,7 @@ class ResultAggregation:
         report_fdr_filtered = all_targets[
             all_targets["q_value_aggregated"] <= self.fdr_threshold
         ]
+
+        # TODO: aggregate duplicate precursors
 
         return report_aggregated, report_fdr_filtered
