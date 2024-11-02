@@ -36,7 +36,7 @@ def make_dia_nn_var_mod_commands(
     if mods == "unmodified":
         var_mod_commands = []
     else:
-        mods_list = [mods] if isinstance(mods, str) else mods
+        mods_list = [mods] if isinstance(mods, str) else sorted(mods)
         var_mod_commands = [
             f"--var-mod {modification_unimod_format_to_dia_nn_varmod_format(mod)}"
             for mod in mods_list
@@ -45,7 +45,7 @@ def make_dia_nn_var_mod_commands(
     # add all mods that should be searched additionally
     var_mod_commands += [
         f"--var-mod {modification_unimod_format_to_dia_nn_varmod_format(mod)}"
-        for mod in additional_mods
+        for mod in sorted(additional_mods)
     ]
 
     return var_mod_commands
