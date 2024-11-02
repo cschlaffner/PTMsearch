@@ -4,6 +4,7 @@ from argparse import ArgumentParser
 from pathlib import Path
 from typing import FrozenSet, List, Union
 
+import numpy as np
 import pandas as pd
 from pyopenms import MSExperiment, MzMLFile
 
@@ -109,6 +110,7 @@ def main(config_path: Path):
                 detected_ions_df,
                 config.detection_count_percentile,
                 config.detection_count_min,
+                len(config.modifications_additions),
             )
         )
 
@@ -129,8 +131,8 @@ def main(config_path: Path):
     if config.library_free:
         # TODO: validate that the path is there
         database_path = config.database_for_library_prediction
-        mods_for_lib_creation = (
-            modifications_to_search + modification_combinations + ["unmodified"]
+        mods_for_lib_creation = np.concatenate(
+            [modifications_to_search, modification_combinations, ["unmodified"]]
         )
         spectral_library_files_by_mod = {}
 
@@ -232,7 +234,7 @@ def main(config_path: Path):
         mod_combination_str = get_mod_combination_str(mods)
         logger.info("Preparing search for modification(s) %s...", mod_combination_str)
 
-        dia_nn_report_path = f"{result_path}/report_{mod_combination_str}.tsv"
+        dia_nn_report_path = result_path / f"report_{mod_combination_str}.tsv"
         spectrum_id_mapping_path = (
             result_path / f"spectrum_id_mapping_{mod_combination_str}.csv"
         )
@@ -289,20 +291,20 @@ def main(config_path: Path):
             dia_nn_command_for_mod,
         )
 
-        try:
-            subprocess.run(
-                dia_nn_command_for_mod,
-                # TODO: print warning if it fails
-                check=True,
-            )
-            logger.info(
-                "DIA-NN run for modification %s has finished.", mod_combination_str
-            )
-        except subprocess.CalledProcessError as e:
-            # TODO: capture error message
-            logger.warning(
-                "DIA-NN run for modification %s crashed.", mod_combination_str
-            )
+        # try:
+        #     subprocess.run(
+        #         dia_nn_command_for_mod,
+        #         # TODO: print warning if it fails
+        #         check=True,
+        #     )
+        #     logger.info(
+        #         "DIA-NN run for modification %s has finished.", mod_combination_str
+        #     )
+        # except subprocess.CalledProcessError as e:
+        #     # TODO: capture error message
+        #     logger.warning(
+        #         "DIA-NN run for modification %s crashed.", mod_combination_str
+        #     )
 
     aggregation = ResultAggregation(config.fdr_threshold)
     report_all_targets_with_decoys, report_fdr_filtered = aggregation.aggregate_results(
@@ -310,10 +312,10 @@ def main(config_path: Path):
     )
 
     report_all_targets_with_decoys.to_csv(
-        result_path / "report_aggregated_all_targets_with_decoys", index=False
+        result_path / "report_aggregated_all_targets_with_decoys.csv", index=False
     )
     report_fdr_filtered.to_csv(
-        result_path / "report_aggregated_fdr_filtered", index=False
+        result_path / "report_aggregated_fdr_filtered.csv", index=False
     )
 
 

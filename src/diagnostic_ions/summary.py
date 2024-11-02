@@ -86,7 +86,7 @@ def plot_detected_ion_combinations(
     detection_count_percentile: float,
     plot_fractions: List[float] = [0.5, 0.8, 0.9],
     topk: int = 50,
-    figsize: Tuple[int] = (10, 15),
+    figsize: Tuple[int, int] = (10, 15),
 ) -> None:
     combinations, counts = get_modification_combinations_with_counts(
         detected_ions_df, return_unimod=False
@@ -111,7 +111,7 @@ def plot_detected_ion_combinations(
     ax.set_xlabel("number of windows")
     ax.invert_yaxis()
 
-    plot_fractions = plot_fractions.append(detection_count_percentile)
+    plot_fractions.append(detection_count_percentile)
     combination_counts_sorted_reverse = combination_counts_sorted[::-1]
     max_count = combination_counts_sorted_reverse.max()
     color_map = cm.get_cmap("Dark2")
@@ -143,6 +143,7 @@ def get_detected_modifications_with_combinations(
     detected_ions_df: pd.DataFrame,
     detection_count_percentile: float,
     detection_count_min: int,
+    num_additional_modifications: int,
 ) -> Tuple[List[str], FrozenSet[str]]:
 
     combinations, counts = get_modification_combinations_with_counts(
@@ -172,8 +173,11 @@ def get_detected_modifications_with_combinations(
 
     combinations_percentile = combinations_sorted[: percentile_index + 1]
     modifications = np.unique(np.concatenate(combinations_percentile))
+    # DIA-NN can only handle max. 5 modifications at once
     combinations_sets = [
-        frozenset(combination) for combination in combinations_percentile
+        frozenset(combination)
+        for combination in combinations_percentile
+        if len(combination) + num_additional_modifications <= 5
     ]
 
     return modifications, combinations_sets
