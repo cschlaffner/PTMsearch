@@ -291,20 +291,20 @@ def main(config_path: Path):
             dia_nn_command_for_mod,
         )
 
-        # try:
-        #     subprocess.run(
-        #         dia_nn_command_for_mod,
-        #         # TODO: print warning if it fails
-        #         check=True,
-        #     )
-        #     logger.info(
-        #         "DIA-NN run for modification %s has finished.", mod_combination_str
-        #     )
-        # except subprocess.CalledProcessError as e:
-        #     # TODO: capture error message
-        #     logger.warning(
-        #         "DIA-NN run for modification %s crashed.", mod_combination_str
-        #     )
+        try:
+            subprocess.run(
+                dia_nn_command_for_mod,
+                # TODO: print warning if it fails
+                check=True,
+            )
+            logger.info(
+                "DIA-NN run for modification %s has finished.", mod_combination_str
+            )
+        except subprocess.CalledProcessError as e:
+            # TODO: capture error message
+            logger.warning(
+                "DIA-NN run for modification %s crashed.", mod_combination_str
+            )
 
     aggregation = ResultAggregation(config.fdr_threshold)
     report_all_targets_with_decoys, report_fdr_filtered = aggregation.aggregate_results(

@@ -174,10 +174,11 @@ def get_detected_modifications_with_combinations(
     combinations_percentile = combinations_sorted[: percentile_index + 1]
     modifications = np.unique(np.concatenate(combinations_percentile))
     # DIA-NN can only handle max. 5 modifications at once
+    # and single mods should not be handled as combination
     combinations_sets = [
         frozenset(combination)
         for combination in combinations_percentile
-        if len(combination) + num_additional_modifications <= 5
+        if len(combination) + num_additional_modifications <= 5 and len(combination) > 1
     ]
 
     return modifications, combinations_sets
