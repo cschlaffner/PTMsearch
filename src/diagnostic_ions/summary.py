@@ -74,9 +74,13 @@ def get_modification_combinations_with_counts(
     mods = []
     for _, group in detected_ions_df_by_window:
         mods.append(
-            [",".join(mod) for mod in (group[mod_columns].drop_duplicates().to_numpy())]
+            sorted(
+                [
+                    ",".join(mod)
+                    for mod in (group[mod_columns].drop_duplicates().to_numpy())
+                ]
+            )
         )
-
     return np.unique(np.array(mods, dtype="object"), return_counts=True)
 
 
@@ -154,25 +158,24 @@ def get_detected_modifications_with_combinations(
     combination_counts_sorted = counts[count_sort][::-1]
     total_count = combination_counts_sorted.sum()
 
-    combinations_sorted = combinations_sorted[
+    combinations_sorted_min = combinations_sorted[
         combination_counts_sorted >= detection_count_min
     ]
-    combination_counts_sorted = combination_counts_sorted[
+    combination_counts_sorted_min = combination_counts_sorted[
         combination_counts_sorted >= detection_count_min
     ]
 
     total_count_fraction = total_count * detection_count_percentile
     total_count_current = 0
 
-    percentile_index = len(combination_counts_sorted)
-    for i, count in enumerate(combination_counts_sorted):
+    percentile_index = len(combination_counts_sorted_min)
+    for i, count in enumerate(combination_counts_sorted_min):
         total_count_current += count
         if total_count_current >= total_count_fraction:
             percentile_index = i
             break
 
-    combinations_percentile = combinations_sorted[: percentile_index + 1]
-    modifications = np.unique(np.concatenate(combinations_percentile))
+    combinations_percentile = combinations_sorted_min[: percentile_index + 1]
     # DIA-NN can only handle max. 5 modifications at once
     # and single mods should not be handled as combination
     combinations_sets = [
@@ -181,4 +184,24 @@ def get_detected_modifications_with_combinations(
         if len(combination) + num_additional_modifications <= 5 and len(combination) > 1
     ]
 
-    return modifications, combinations_sets
+    modifications = np.unique(np.concatenate(combinations_sorted))
+    modifications_min = []
+
+    discarded_combinations_with_counts = [
+        (combination, count)
+        for combination, count in zip(combinations_sorted, combination_counts_sorted)
+        if frozenset(combination) not in combinations_sets
+    ]
+    for mod in modifications:
+        count_discarded_combinations_mod = np.sum(
+            [
+                count
+                for combination, count in discarded_combinations_with_counts
+                if mod in combination
+            ]
+        )
+
+        if count_discarded_combinations_mod >= np.maximum(detection_count_min, 1):
+            modifications_min.append(mod)
+
+    return modifications_min, combinations_sets

@@ -23,6 +23,12 @@ additional_mods_count = 4
 
 @pytest.fixture
 def detected_ions_df() -> pd.DataFrame:
+    # K1
+    # K1
+    # Y21, K1
+    # K1, L34, Y21
+    # K34
+    # K1, Y21
     return pd.DataFrame(
         {
             "spectrum_id": [
@@ -89,10 +95,7 @@ def mods_combinations_no_threshold_additional_mods() -> pd.DataFrame:
 
 @pytest.fixture
 def mods_combinations_window_threshold() -> pd.DataFrame:
-    return [k_1], [frozenset([k_1, y_21])]
-
-
-# TODO: add more cases for the case when a modification is counted single because a combination is discarded
+    return [k_1, k_34], [frozenset([k_1, y_21])]
 
 
 @pytest.fixture
@@ -137,5 +140,5 @@ def test_splitting_with_mods(
         detection_count_min,
         num_additional_modifications,
     )
-    assert np.array_equal(mods, expected_mods)
-    assert np.array_equal(combinations, expected_combinations)
+    assert np.array_equal(sorted(mods), sorted(expected_mods))
+    assert np.array_equal(sorted(combinations), sorted(expected_combinations))
