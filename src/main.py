@@ -7,7 +7,6 @@ from typing import FrozenSet, List, Union
 import numpy as np
 import pandas as pd
 from pyopenms import MSExperiment, MzMLFile
-
 from src.config.config import Config
 from src.diagnostic_ions.detection import DiagnosticIonDetector
 from src.diagnostic_ions.summary import (
@@ -294,7 +293,6 @@ def main(config_path: Path):
         try:
             subprocess.run(
                 dia_nn_command_for_mod,
-                # TODO: print warning if it fails
                 check=True,
             )
             logger.info(

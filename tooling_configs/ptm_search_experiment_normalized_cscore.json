@@ -5,7 +5,7 @@
     "diagnostic_ions_mass_tolerance": 10.0,
     "diagnostic_ions_mass_tolerance_unit": "ppm",
     "snr_threshold": 3,
-    "result_dir": "../workflow_test_tolerance_snr3_10ppm_all_mods_combinations_m_oxid",
+    "result_dir": "../workflow_test_tolerance_snr3_10ppm_all_mods_combinations_normalized_cscore",
     "mzml_file": "../proteomics_data/230928_JL_Immonium_ions_Modified_DIA.mzML",
     "dia_nn_path": "../diann/diann-1.8.1",
     "spectral_library_files_by_mod": {},
@@ -50,6 +50,13 @@
         ],
         [
             "K(UniMod:1)",
+            "K(UniMod:34)",
+            "P(UniMod:35)",
+            "Y(UniMod:354)",
+            "Y(UniMod:21)"
+        ],
+        [
+            "K(UniMod:1)",
             "Y(UniMod:21)"
         ],
         [
@@ -59,8 +66,9 @@
             "Y(UniMod:21)"
         ]
     ],
-    "modifications_additions": [
-        "M(UniMod:35)"
-    ],
-    "fdr_threshold": 0.01
+    "modifications_additions": [],
+    "detection_count_percentile": 1.0,
+    "detection_count_min": 0,
+    "fdr_threshold": 0.01,
+    "normalize_cscores": true
 }

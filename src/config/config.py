@@ -1,7 +1,7 @@
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, FrozenSet, List, Union
+from typing import Dict, FrozenSet, List, Optional, Union
 
 
 @dataclass
@@ -25,9 +25,10 @@ class Config:
     diagnostic_ions_mass_tolerance: Union[float, int]
     diagnostic_ions_mass_tolerance_unit: str
     snr_threshold: Union[float, int]
-    detection_count_percentile: float
-    detection_count_min: int
     fdr_threshold: float
+    detection_count_percentile: float = 1.0
+    detection_count_min: int = 0
+    normalize_cscores: bool = False
 
     @classmethod
     def from_path(cls, config_path: Path):
