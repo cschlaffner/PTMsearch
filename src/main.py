@@ -304,7 +304,7 @@ def main(config_path: Path):
                 "DIA-NN run for modification %s crashed.", mod_combination_str
             )
 
-    aggregation = ResultAggregation(config.fdr_threshold)
+    aggregation = ResultAggregation(config.fdr_threshold, config.normalize_cscores)
     report_all_targets_with_decoys, report_fdr_filtered = aggregation.aggregate_results(
         result_path, file_paths_by_mods
     )

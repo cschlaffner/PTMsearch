@@ -33,5 +33,6 @@
         "Y(UniMod:21)"
     ],
     "modification_combinations": [],
-    "modifications_additions": []
+    "modifications_additions": [],
+    "fdr_threshold": 0.01
 }

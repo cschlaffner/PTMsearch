@@ -9,8 +9,10 @@ from pyopenms import MSExperiment, MzMLFile
 
 
 class ResultAggregation:
-    def __init__(self, fdr_threshold: float):
+    def __init__(self, fdr_threshold: float, normalize_cscores: bool = False):
         self.fdr_threshold = fdr_threshold
+        self.normalize_cscores = normalize_cscores
+        self.c_score_column = "CScore_normalized" if normalize_cscores else "CScore"
 
     def _fix_decoy_report(self, df):
         df.loc[:, "Q.Value"] = pd.to_numeric(df["Precursor.Id"])
@@ -78,8 +80,8 @@ class ResultAggregation:
         return np.concatenate(q_values)
 
     def _compute_qvalues(self, targets_df: pd.DataFrame, decoys_df: pd.DataFrame):
-        targets_cscores = targets_df["CScore"].to_numpy()
-        decoys_cscores = decoys_df["CScore"].to_numpy()
+        targets_cscores = targets_df[self.c_score_column].to_numpy()
+        decoys_cscores = decoys_df[self.c_score_column].to_numpy()
         qvalues_targets = self._qvalues_for_cscores(
             targets_cscores, targets_cscores, decoys_cscores
         )
@@ -109,25 +111,25 @@ class ResultAggregation:
             scores_max - scores_min
         )
 
-        split_targets_df.rename(columns={"CScore": "CScore_unnormalized"}, inplace=True)
         split_targets_df.insert(
-            len(split_targets_df.columns), "CScore", target_cscores_normalized
+            len(split_targets_df.columns),
+            self.c_score_column,
+            target_cscores_normalized,
         )
-        split_decoys_df.rename(columns={"CScore": "CScore_unnormalized"}, inplace=True)
         split_decoys_df.insert(
-            len(split_decoys_df.columns), "CScore", decoy_cscores_normalized
+            len(split_decoys_df.columns), self.c_score_column, decoy_cscores_normalized
         )
 
     def _aggregate_duplicate_precursors(self, targets_df: pd.DataFrame):
         # based on https://stackoverflow.com/a/45527762
         return (
-            targets_df.sort_values("CScore", ascending=False)
+            targets_df.sort_values(self.c_score_column, ascending=False)
             .groupby(by=["Precursor.Id", "original_id"], as_index=False)
             .head(1)
             .reset_index(drop=True)
         )
 
-    def get_mods_unmods_all_from_splits(self, file_paths_by_mods, normalize_cscores):
+    def get_mods_unmods_all_from_splits(self, file_paths_by_mods):
         splits_results = {}
         for mods in file_paths_by_mods:
             file_paths = file_paths_by_mods[mods]
@@ -151,7 +153,7 @@ class ResultAggregation:
                 targets, exp, mapping_df
             )
 
-            if normalize_cscores:
+            if self.normalize_cscores:
                 self._normalize_cscores(targets, decoys)
 
             splits_results[mods] = {"targets": targets, "decoys": decoys}
@@ -190,12 +192,12 @@ class ResultAggregation:
         self, result_path, targets_df, decoys_df, fig_name, normalized=False
     ):
         if normalized:
-            decoy_cscores = decoys_df["CScore"]
-            target_cscores = targets_df["CScore"]
+            decoy_cscores = decoys_df[self.c_score_column]
+            target_cscores = targets_df[self.c_score_column]
             cscore_label = "cscore_normalized"
         else:
-            decoy_cscores = decoys_df["CScore_unnormalized"]
-            target_cscores = targets_df["CScore_unnormalized"]
+            decoy_cscores = decoys_df["CScore"]
+            target_cscores = targets_df["CScore"]
             cscore_label = "cscore_unnormalized"
 
         plt.figure()
@@ -209,9 +211,7 @@ class ResultAggregation:
             bbox_inches="tight",
         )
 
-    def aggregate_results(
-        self, result_path, file_paths_by_mods, normalize_cscores=False
-    ):
+    def aggregate_results(self, result_path, file_paths_by_mods):
         (
             mods_targets,
             mods_decoys,
@@ -219,7 +219,7 @@ class ResultAggregation:
             unmods_decoys,
             all_targets,
             all_decoys,
-        ) = self.get_mods_unmods_all_from_splits(file_paths_by_mods, normalize_cscores)
+        ) = self.get_mods_unmods_all_from_splits(file_paths_by_mods)
 
         self.plot_densities(
             result_path,
@@ -239,7 +239,7 @@ class ResultAggregation:
             result_path, all_targets, all_decoys, "all_splits", normalized=False
         )
 
-        if normalize_cscores:
+        if self.normalize_cscores:
             self.plot_densities(
                 result_path,
                 mods_targets,
