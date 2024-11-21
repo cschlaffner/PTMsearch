@@ -201,6 +201,15 @@ class ResultAggregation:
             cscore_label = "cscore_unnormalized"
 
         plt.figure()
+        # to have unified plots for c-scores in the expected normal range
+        if (
+            decoy_cscores.max() < 1.5
+            and decoy_cscores.min() >= 0
+            and target_cscores.max() < 1.5
+            and target_cscores.min() >= 0
+        ):
+            plt.xlim((-0.25, 1.5))
+            plt.xticks(np.arange(0, 1.26, 0.25))
         decoy_cscores.plot.kde(label="decoys")
         target_cscores.plot.kde(label="targets")
         plt.xlabel("CScore")
@@ -265,10 +274,14 @@ class ResultAggregation:
             ignore_index=True,
         )
 
+        cscore_threshold = all_targets[
+            all_targets["q_value_aggregated"] <= self.fdr_threshold
+        ][self.c_score_column].min()
+
         all_targets_no_duplicates = self._aggregate_duplicate_precursors(all_targets)
 
         report_fdr_filtered = all_targets_no_duplicates[
-            all_targets_no_duplicates["q_value_aggregated"] <= self.fdr_threshold
+            all_targets_no_duplicates[self.c_score_column] >= cscore_threshold
         ]
 
         return report_aggregated, report_fdr_filtered
