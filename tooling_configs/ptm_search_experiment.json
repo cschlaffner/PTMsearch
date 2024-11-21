@@ -5,7 +5,7 @@
     "diagnostic_ions_mass_tolerance": 10.0,
     "diagnostic_ions_mass_tolerance_unit": "ppm",
     "snr_threshold": 3,
-    "result_dir": "../workflow_test_tolerance_snr3_10ppm_all_mods_with_combinations_aggregated_test",
+    "result_dir": "../workflow_test_tolerance_snr3_10ppm_all_mods_with_combinations_aggregated",
     "mzml_file": "../proteomics_data/230928_JL_Immonium_ions_Modified_DIA.mzML",
     "dia_nn_path": "../diann/diann-1.8.1",
     "spectral_library_files_by_mod": {},

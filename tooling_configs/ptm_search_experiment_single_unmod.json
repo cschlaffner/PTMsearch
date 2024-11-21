@@ -19,5 +19,20 @@
         "Y(UniMod:354)": "../proteomics_data/library_filtered_database/in_silico_library_filtered_nitro.predicted.speclib",
         "Y(UniMod:21)": "../proteomics_data/library_filtered_database/in_silico_library_filtered_phospho.predicted.speclib"
     },
-    "spectral_library_for_filtering_path": ""
+    "spectral_library_for_filtering_path": "",
+    "library_free": false,
+    "database_for_library_prediction": "",
+    "modifications_to_search": [
+        "K(UniMod:1)",
+        "K(UniMod:3)",
+        "K(UniMod:36)",
+        "K(UniMod:34)",
+        "K(UniMod:37)",
+        "P(UniMod:35)",
+        "Y(UniMod:354)",
+        "Y(UniMod:21)"
+    ],
+    "modification_combinations": [],
+    "modifications_additions": [],
+    "fdr_threshold": 0.01
 }
