@@ -7,6 +7,7 @@ from typing import FrozenSet, List, Union
 import numpy as np
 import pandas as pd
 from pyopenms import MSExperiment, MzMLFile
+
 from src.config.config import Config
 from src.diagnostic_ions.detection import DiagnosticIonDetector
 from src.diagnostic_ions.summary import (
@@ -65,6 +66,7 @@ def main(config_path: Path):
     )
 
     # TODO: add some validation (including whether all paths exist etc)
+    # and create result dir if it doesnt exist
     ms1_and_higher_energy_windows = extractor.extract_ms1_and_higher_energy_windows(exp)
     higher_energy_windows = extractor.extract_higher_energy_windows(
         ms1_and_higher_energy_windows
@@ -95,6 +97,12 @@ def main(config_path: Path):
         logger.info("Saved diagnostic ion detection results in %s.", ions_file)
     else:
         detected_ions_df = pd.read_csv(ions_file)
+
+    if config.run_only_ion_detection:
+        logger.info(
+            "The run was configured as ion detection only, so no search is done. Exiting."
+        )
+        return
 
     # TODO: add intermediate output of the results as plots and/or list the combinations
     # Have an option for running only until this point.
