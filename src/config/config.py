@@ -1,5 +1,5 @@
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, FrozenSet, List, Optional, Union
 
@@ -24,8 +24,40 @@ class Config:
     """In library-free mode, the spectral libraries per split will be predicted by
     DIA-NN."""
 
+    modifications_to_search: List[str]
+    modification_combinations: List[FrozenSet[str]]
+    modifications_additions: List[str]
+
+    lower_collision_energy: Union[float, int]
+    """Collision energy of the fragment ion windows, i.e., the MS2 spectra
+    that should be used for the DIA-NN search."""
+
+    higher_collision_energy: Union[float, int]
+    """Collision energy of the immonium ion windows, i.e., the MS2 spectra
+    that should be used for the ion/modification detection."""
+
+    diagnostic_ions_mass_tolerance: Union[float, int]
+    """Mass tolerance (numeric value only) for ion detection and DIA-NN search."""
+
+    diagnostic_ions_mass_tolerance_unit: str
+    """Unit of the mass tolerance (supported: ppm or Da)."""
+
+    snr_threshold: Union[float, int]
+    """Signal-to-noise ratio threshold for ion detection: immonium ion spectra with a lower SNR will
+    be discarded. SNR of a spectrum is calculated as peak_intensity_max / peak_intensity_mean."""
+
+    fdr_threshold: float
+
+    known_diagnostic_ions_file: str = "src/diagnostic_ions/known_ions_only_unimod.csv"
+    """Path to a CSV file containing information about diagnostic ions for the detection.
+    Current one contains selected ions from (TODO: cite) that are listed in UniMod.
+    If you provide your own ions file, make sure that it contains only ions for modifications that
+    are listed in UniMod. Otherwise, it's not compatible with prediction and search with DIA-NN."""
+
     # TODO: change this to support also combinations
-    spectral_library_files_by_mod: Dict[str, str] = {}
+    spectral_library_files_by_mod: Dict[Union[str, FrozenSet[str]], str] = field(
+        default_factory=lambda: {}
+    )
     """If you already have spectral libraries: The spectral library
     for each modification. Should contain precursors for the modification
     and also the unmodified ones. Those files will not be validated/checked
@@ -41,36 +73,6 @@ class Config:
     database_for_library_prediction: str = ""
     """If library-free mode is used, you must specify a database that will
     be used for the spectral library prediction by DIA-NN."""
-
-    modifications_to_search: List[str]
-    modification_combinations: List[FrozenSet[str]]
-    modifications_additions: List[str]
-
-    lower_collision_energy: Union[float, int]
-    """Collision energy of the fragment ion windows, i.e., the MS2 spectra
-    that should be used for the DIA-NN search."""
-
-    higher_collision_energy: Union[float, int]
-    """Collision energy of the immonium ion windows, i.e., the MS2 spectra
-    that should be used for the ion/modification detection."""
-
-    known_diagnostic_ions_file: str = "src/diagnostic_ions/known_ions_only_unimod.csv"
-    """Path to a CSV file containing information about diagnostic ions for the detection.
-    Current one contains selected ions from (TODO: cite) that are listed in UniMod.
-    If you provide your own ions file, make sure that it contains only ions for modifications that
-    are listed in UniMod. Otherwise, it's not compatible with prediction and search with DIA-NN."""
-
-    diagnostic_ions_mass_tolerance: Union[float, int]
-    """Mass tolerance (numeric value only) for ion detection and DIA-NN search."""
-
-    diagnostic_ions_mass_tolerance_unit: str
-    """Unit of the mass tolerance (supported: ppm or Da)."""
-
-    snr_threshold: Union[float, int]
-    """Signal-to-noise ratio threshold for ion detection: immonium ion spectra with a lower SNR will
-    be discarded. SNR of a spectrum is calculated as peak_intensity_max / peak_intensity_mean."""
-
-    fdr_threshold: float
 
     detection_count_percentile: float = 1.0
     """If modifications and combinations should be detected automatically: Consider only the

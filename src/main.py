@@ -7,7 +7,6 @@ from typing import FrozenSet, List, Union
 import numpy as np
 import pandas as pd
 from pyopenms import MSExperiment, MzMLFile
-
 from src.config.config import Config
 from src.diagnostic_ions.detection import DiagnosticIonDetector
 from src.diagnostic_ions.summary import (
@@ -29,7 +28,6 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
-# TODO: maybe move this to utils file
 def make_dia_nn_var_mod_commands(
     mods: List[Union[str, FrozenSet[str]]], additional_mods: List[str]
 ) -> List[str]:
@@ -96,6 +94,7 @@ def main(config_path: Path):
 
         logger.info("Saved diagnostic ion detection results in %s.", ions_file)
     else:
+        logger.info("Loading already existing ion file...")
         detected_ions_df = pd.read_csv(ions_file)
 
     if config.run_only_ion_detection:
@@ -103,9 +102,6 @@ def main(config_path: Path):
             "The run was configured as ion detection only, so no search is done. Exiting."
         )
         return
-
-    # TODO: add intermediate output of the results as plots and/or list the combinations
-    # Have an option for running only until this point.
 
     if config.modifications_to_search != []:
         modifications_to_search = config.modifications_to_search
@@ -126,13 +122,31 @@ def main(config_path: Path):
     ]
 
     logger.info(
-        "Considering only mods %s and combinations %s for window splitting and spectrum library handling.",
+        "Considering mods %s and combinations %s for window splitting and spectrum library handling.",
         modifications_to_search,
         [
             get_mod_combination_str(mod_combination)
             for mod_combination in modification_combinations
         ],
     )
+
+    if len(config.modifications_additions) > 0:
+        if config.library_free:
+            library_log_text = "and added to spectral library prediction"
+        else:
+            if config.spectral_library_files_by_mod:
+                library_log_text = ""
+            else:
+                library_log_text = (
+                    "and not discarded during spectral library filtering."
+                )
+
+        logger.info(
+            "Additional modifications %s will be added to search %s.",
+            config.modifications_additions,
+            library_log_text,
+        )
+
     # TODO: add information about additional combinations
 
     if config.library_free:

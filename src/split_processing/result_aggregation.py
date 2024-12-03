@@ -210,8 +210,8 @@ class ResultAggregation:
         ):
             plt.xlim((-0.25, 1.5))
             plt.xticks(np.arange(0, 1.26, 0.25))
-        decoy_cscores.plot.kde(label="decoys")
-        target_cscores.plot.kde(label="targets")
+        decoy_cscores.plot.kde(label="Decoys")
+        target_cscores.plot.kde(label="Targets")
         plt.xlabel("CScore")
         plt.legend()
 
