@@ -60,6 +60,9 @@ def plot_detected_ions(detected_ions_df: pd.DataFrame, result_path: Path) -> Non
 def get_modification_combinations_with_counts(
     detected_ions_df: pd.DataFrame, return_unimod=False
 ):
+    """Returns all occuring combinations of PTMs with their counts of
+    occurrence. Also treats single PTMs as 1-PTM combination."""
+
     mod_columns = (
         ["letter_and_unimod_format_mod"]
         if return_unimod
@@ -92,6 +95,12 @@ def plot_detected_ion_combinations(
     topk: int = 50,
     figsize: Tuple[int, int] = (10, 15),
 ) -> None:
+    """Plots the top-k of PTM combinations based on the detected ions.
+    Also treats single PTMs as 1-PTM combination. If you want to plot
+    more than top 50, you should make the figure taller. You can
+    specify percentiles (plot_fractions) which will be marked in the
+    plot (if their limits are within the top-k window.)"""
+
     combinations, counts = get_modification_combinations_with_counts(
         detected_ions_df, return_unimod=False
     )
@@ -149,6 +158,14 @@ def get_detected_modifications_with_combinations(
     detection_count_min: int,
     num_additional_modifications: int,
 ) -> Tuple[List[str], FrozenSet[str]]:
+    """Returns the single PTMs and combinations based on the detected
+    ions. To avoid too small splits, a limit for the minimum number of
+    windows (detection_count_min) can be specified which is applied
+    to combinations and single PTMs (for which the number of occurrences
+    in selected combinations is not taken into account.). Further,
+    you can specify the detection_count_percentile, which means that
+    all combinations (sorted by number if windows) that make up this
+    percentage of all windows with combinations are considered."""
 
     combinations, counts = get_modification_combinations_with_counts(
         detected_ions_df, return_unimod=True

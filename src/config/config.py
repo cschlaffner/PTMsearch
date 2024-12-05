@@ -12,7 +12,10 @@ class Config:
     """The directory in which all intermediate and end results will be stored."""
 
     mzml_file: str
-    """The file that contains higher- and lower-energy windows.
+    """The file that contains higher- and lower-energy windows. Assumes equal
+    number of higher-and lower-energy windows, i.e., that each lower-energy window
+    has exactly one corresponding higher-energy window. Assumes same number of MS2
+    windows for each MS1 window.
     Currently, only one file (= one run) is supported.
     Must be compatible with DIA-NN, see
     https://github.com/vdemichev/DiaNN?tab=readme-ov-file#raw-data-formats"""
@@ -134,9 +137,7 @@ class Config:
 
     normalize_cscores: bool = False
     """If set to true, min-max normalization to 0-1 range will be run for the c-scores
-    of each split before aggregation, to avoid exceptionally large c-scores for some splits
-    (which can occur if DIA-NN falls back to a linear classifier for c-score calculation
-    due to low number of identifications)."""
+    of each split before aggregation, to avoid exceptionally large c-scores for some splits."""
 
     run_only_ion_detection: bool = False
     """If this is set to True, the workflow stops after ion detection

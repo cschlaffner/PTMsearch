@@ -9,33 +9,36 @@ from pyopenms import MSExperiment, MzMLFile
 
 
 class ResultAggregation:
+    """A class to aggregate results from splits and calculate aggregated q-values."""
+
     def __init__(self, fdr_threshold: float, normalize_cscores: bool = False):
         self.fdr_threshold = fdr_threshold
         self.normalize_cscores = normalize_cscores
         self.c_score_column = "CScore_normalized" if normalize_cscores else "CScore"
 
     def _fix_decoy_report(self, df):
+        """The decoy precursor rows in the DIA-NN report are misaligned and therefore
+        columns do not match, so the relevant column values must be shifted to
+        the right columns after loading. Further, decoys do not have their window
+        of detection stored, so the respective final report columns have to get
+        placeholders.
+        """
         df.loc[:, "Q.Value"] = pd.to_numeric(df["Precursor.Id"])
         df.loc[:, "Precursor.Id"] = df["Modified.Sequence"]
         df.loc[:, "CScore"] = df["RT.Start"]
 
         df.insert(len(df.columns), "remapped_id", np.repeat(np.nan, len(df)))
         df.insert(len(df.columns), "original_id", np.repeat(np.nan, len(df)))
-        df.insert(
-            len(df.columns),
-            "higher_energy_id",
-            np.repeat(np.nan, len(df)),
-        )
 
     def _get_id_number(self, id_string):
         return int(re.findall("[0-9]+", id_string)[-1])
 
-    def _get_higher_energy_scan_id(self, id_string):
-        id_number = self._get_id_number(id_string)
-        higher_energy_id_number = id_number + 36
-        return f"controllerType=0 controllerNumber=1 scan={higher_energy_id_number}"
-
-    def _get_df_with_original_and_higher_energy_id_mapped(self, df, exp, mapping_df):
+    def _get_df_with_original_id_mapped(self, df, exp, mapping_df):
+        """Recovers the ID of the renamed spectrum from the search mzML and
+        the original ID that the spectrum had in the original dataset without
+        splitting from the DIA-NN report column that lists the index of the MS2 scan
+        (considering only MS2 scans for the internal indexing apparently, see
+        https://github.com/vdemichev/DiaNN/discussions/985)."""
         ms2_spectra = np.array(
             [spectrum for spectrum in exp.getSpectra() if spectrum.getMSLevel() == 2]
         )
@@ -53,17 +56,13 @@ class ResultAggregation:
                 for remapped_id in df["remapped_id"]
             ],
         )
-        higher_energy_id_number = np.array(
-            [
-                self._get_id_number(self._get_higher_energy_scan_id(id))
-                for id in df["original_id"]
-            ]
-        )
-        df.insert(len(df.columns), "higher_energy_id", higher_energy_id_number)
 
     def _qvalues_for_cscores(
         self, cscores, targets_cscores, decoys_cscores, batch_size=1000
     ):
+        """Calculates q-values as local FDR for the given c-scores.
+        Formula follows the official DIA-NN paper (Demichev et al. (2017)).
+        Calculation is done in batches to make the procedure a bit faster."""
         cscores = cscores[:, None]
         targets_cscores = targets_cscores[None, :]
         decoys_cscores = decoys_cscores[None, :]
@@ -79,7 +78,10 @@ class ResultAggregation:
 
         return np.concatenate(q_values)
 
-    def _compute_qvalues(self, targets_df: pd.DataFrame, decoys_df: pd.DataFrame):
+    def _qvalues_for_targets_and_decoys(
+        self, targets_df: pd.DataFrame, decoys_df: pd.DataFrame
+    ):
+        """Wraps q-value calculation for targets and decoys."""
         targets_cscores = targets_df[self.c_score_column].to_numpy()
         decoys_cscores = decoys_df[self.c_score_column].to_numpy()
         qvalues_targets = self._qvalues_for_cscores(
@@ -97,6 +99,10 @@ class ResultAggregation:
     def _normalize_cscores(
         self, split_targets_df: pd.DataFrame, split_decoys_df: pd.DataFrame
     ):
+        """Min-max c-score normalization to 0-1 range. DIA-NN sometimes
+        produces c-scores larger than 1 for a split, which
+        can skew the overall c-score distributions. This can be mitigated
+        by normalization."""
         target_cscores = split_targets_df["CScore"].to_numpy()
         decoy_cscores = split_decoys_df["CScore"].to_numpy()
         split_cscores = np.concatenate([target_cscores, decoy_cscores])
@@ -120,7 +126,9 @@ class ResultAggregation:
             len(split_decoys_df.columns), self.c_score_column, decoy_cscores_normalized
         )
 
-    def _aggregate_duplicate_precursors(self, targets_df: pd.DataFrame):
+    def _de_duplicate_precursors(self, targets_df: pd.DataFrame):
+        """Removes duplicate precursors, i.e., precursors with same ID found
+        in the same window, while keeping the one with the maximum c-score."""
         # based on https://stackoverflow.com/a/45527762
         return (
             targets_df.sort_values(self.c_score_column, ascending=False)
@@ -129,7 +137,11 @@ class ResultAggregation:
             .reset_index(drop=True)
         )
 
-    def get_mods_unmods_all_from_splits(self, file_paths_by_mods):
+    def _get_mods_unmods_all_from_splits(self, file_paths_by_mods):
+        """Obtains precursors (targets and decoys) by splits:
+        all modified splits together, the unmodified split
+        separately, and all splits together."""
+
         splits_results = {}
         for mods in file_paths_by_mods:
             file_paths = file_paths_by_mods[mods]
@@ -149,9 +161,7 @@ class ResultAggregation:
             self._fix_decoy_report(decoys)
 
             targets = dia_nn_report_df[~dia_nn_report_df["Q.Value"].isna()]
-            self._get_df_with_original_and_higher_energy_id_mapped(
-                targets, exp, mapping_df
-            )
+            self._get_df_with_original_id_mapped(targets, exp, mapping_df)
 
             if self.normalize_cscores:
                 self._normalize_cscores(targets, decoys)
@@ -191,6 +201,8 @@ class ResultAggregation:
     def plot_densities(
         self, result_path, targets_df, decoys_df, fig_name, normalized=False
     ):
+        """Density plots for the c-score distributions."""
+
         if normalized:
             decoy_cscores = decoys_df[self.c_score_column]
             target_cscores = targets_df[self.c_score_column]
@@ -221,6 +233,11 @@ class ResultAggregation:
         )
 
     def aggregate_results(self, result_path, file_paths_by_mods):
+        """Aggregates the DIA-NN reports from the different splits
+        and returns a full report (no FDR filtering, containing targets
+        and decoys) and a filtered report (only targets that pass FDR
+        filtering and duplicates removed). Includes plotting of the
+        c-score distributions."""
         (
             mods_targets,
             mods_decoys,
@@ -228,7 +245,7 @@ class ResultAggregation:
             unmods_decoys,
             all_targets,
             all_decoys,
-        ) = self.get_mods_unmods_all_from_splits(file_paths_by_mods)
+        ) = self._get_mods_unmods_all_from_splits(file_paths_by_mods)
 
         self.plot_densities(
             result_path,
@@ -267,7 +284,7 @@ class ResultAggregation:
                 result_path, all_targets, all_decoys, "all_splits", normalized=True
             )
 
-        self._compute_qvalues(all_targets, all_decoys)
+        self._qvalues_for_targets_and_decoys(all_targets, all_decoys)
 
         report_aggregated = pd.concat(
             [all_targets, all_decoys],
@@ -278,7 +295,7 @@ class ResultAggregation:
             all_targets["q_value_aggregated"] <= self.fdr_threshold
         ][self.c_score_column].min()
 
-        all_targets_no_duplicates = self._aggregate_duplicate_precursors(all_targets)
+        all_targets_no_duplicates = self._de_duplicate_precursors(all_targets)
 
         report_fdr_filtered = all_targets_no_duplicates[
             all_targets_no_duplicates[self.c_score_column] >= cscore_threshold
