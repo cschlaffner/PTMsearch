@@ -12,6 +12,25 @@
     "spectral_library_for_filtering_path": "",
     "library_free": true,
     "database_for_library_prediction": "../proteomics_data/database_for_diann/uniprotkb_AND_reviewed_true_AND_model_o_2024_07_16_with_crap_and_synthetic_filtered.fasta",
+    "dia_nn_library_params": {
+        "cut": "K*,R*",
+        "threads": 8,
+        "min-pep-len": 7,
+        "max-pep-len": 30,
+        "max-pr-charge": 4,
+        "min-pr-mz": 350,
+        "max-pr-mz": 1200,
+        "min-fr-mz": 200,
+        "max-fr-mz": 2000,
+        "missed-cleavages": 2,
+        "var-mods": 3
+    },
+    "dia_nn_search_params": {
+        "mass-acc": 10,
+        "mass-acc-ms1": 20,
+        "window": 0,
+        "threads": 8
+    },
     "modifications_to_search": [
         "K(UniMod:1)",
         "K(UniMod:3)",

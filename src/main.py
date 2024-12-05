@@ -2,11 +2,12 @@ import logging
 import subprocess
 from argparse import ArgumentParser
 from pathlib import Path
-from typing import FrozenSet, List, Union
+from typing import Dict, FrozenSet, List, Union
 
 import numpy as np
 import pandas as pd
 from pyopenms import MSExperiment, MzMLFile
+
 from src.config.config import Config
 from src.diagnostic_ions.detection import DiagnosticIonDetector
 from src.diagnostic_ions.summary import (
@@ -48,6 +49,12 @@ def make_dia_nn_var_mod_commands(
     ]
 
     return var_mod_commands
+
+
+def make_dia_nn_additional_param_commands(
+    params: Dict[str, Union[int, str]]
+) -> List[str]:
+    return [f"--{param} {value}" for param, value in params.items()]
 
 
 def main(config_path: Path):
@@ -169,33 +176,29 @@ def main(config_path: Path):
                     mods, config.modifications_additions
                 )
 
-                # TODO: make more configurable/use extra DIA-NN config file
-                dia_nn_library_command_for_mod = [
-                    f"{config.dia_nn_path}",
-                    "--gen-spec-lib",
-                    "--fasta-search",
-                    "--predictor",
-                    "--cut K*,R*",
-                    "--threads 8",
-                    "--min-pep-len 7",
-                    "--max-pep-len 30",
-                    "--max-pr-charge 4",
-                    "--min-pr-mz 350",
-                    "--max-pr-mz 1200",
-                    "--min-fr-mz 200",
-                    "--max-fr-mz 2000",
-                    "--missed-cleavages 2",
-                    "--strip-unknown-mods",
-                    "--var-mods 3",
-                    "--pg-level 2",
-                    # DIA-NN does automatic extension removal for the library path,
-                    # i.e. takes the path before the last '.', so if there is a '.'
-                    # in the path to the result directory, the resulting library
-                    # path is messed up. That is the reason
-                    # for this unnecessary .predicted here.
-                    f"--out-lib {library_path_for_diann}.predicted",
-                    f"--fasta {database_path}",
-                ] + var_mod_commands_for_lib
+                additional_param_commands_lib = make_dia_nn_additional_param_commands(
+                    config.dia_nn_library_params
+                )
+
+                dia_nn_library_command_for_mod = (
+                    [
+                        f"{config.dia_nn_path}",
+                        "--gen-spec-lib",
+                        "--fasta-search",
+                        "--predictor",
+                        "--strip-unknown-mods",
+                        "--pg-level 2",
+                        # DIA-NN does automatic extension removal for the library path,
+                        # i.e. takes the path before the last '.', so if there is a '.'
+                        # in the path to the result directory, the resulting library
+                        # path is messed up. That is the reason
+                        # for this unnecessary .predicted here.
+                        f"--out-lib {library_path_for_diann}.predicted",
+                        f"--fasta {database_path}",
+                    ]
+                    + additional_param_commands_lib
+                    + var_mod_commands_for_lib
+                )
 
                 logger.info(
                     "Running DIA-NN to create spectral library for mod(s) %s  with command %s...",
@@ -290,21 +293,24 @@ def main(config_path: Path):
             mods, config.modifications_additions
         )
 
-        # TODO: make more configurable/use extra DIA-NN config file
-        dia_nn_command_for_mod = [
-            f"{config.dia_nn_path}",
-            f"--f {mzml_path}",
-            f"--lib {spectral_library_file_for_mod}",
-            f"--out {dia_nn_report_path}",
-            "--mass-acc 10",
-            "--mass-acc-ms1 20",
-            "--window 0",
-            "--threads 8",
-            "--qvalue 1",
-            "--pg-level 2",
-            "--decoy-report",
-            "--no-prot-inf",
-        ] + var_mod_commands_for_mods
+        additional_param_commands_search = make_dia_nn_additional_param_commands(
+            config.dia_nn_search_params
+        )
+
+        dia_nn_command_for_mod = (
+            [
+                f"{config.dia_nn_path}",
+                f"--f {mzml_path}",
+                f"--lib {spectral_library_file_for_mod}",
+                f"--out {dia_nn_report_path}",
+                "--qvalue 1",
+                "--pg-level 2",
+                "--decoy-report",
+                "--no-prot-inf",
+            ]
+            + additional_param_commands_search
+            + var_mod_commands_for_mods
+        )
 
         logger.info(
             "DIA-NN command to run for modification %s is %s. Starting DIA-NN run...",

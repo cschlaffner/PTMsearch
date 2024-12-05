@@ -22,6 +22,12 @@
     "spectral_library_for_filtering_path": "",
     "library_free": false,
     "database_for_library_prediction": "",
+    "dia_nn_search_params": {
+        "mass-acc": 10,
+        "mass-acc-ms1": 20,
+        "window": 0,
+        "threads": 8
+    },
     "modifications_to_search": [
         "K(UniMod:1)",
         "K(UniMod:3)",
