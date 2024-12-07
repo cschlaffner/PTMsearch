@@ -1,18 +1,30 @@
+import logging
 import re
 from typing import Dict, FrozenSet, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 
-from src.diagnostic_ions.utils import diff_mono_mass_to_unimod_format
+from src.diagnostic_ions.utils import (
+    diff_mono_mass_to_unimod_format,
+    get_mod_combination_str,
+)
 
 
 # expecting library to be tsv
 def split_library_by_mods(
     spectrum_library: pd.DataFrame,
     has_unimod_format: bool,
-    mod_combinations_to_search: Optional[FrozenSet[Tuple[str]]] = None,
+    mods_to_search: List[str],
+    mod_combinations_to_search: Optional[List[FrozenSet[str]]] = None,
+    additional_mods_to_search: Optional[List[str]] = None,
+    logger: Optional[logging.Logger] = None,
 ) -> Dict[str, pd.DataFrame]:
+
+    if mod_combinations_to_search is None:
+        mod_combinations_to_search = []
+    if additional_mods_to_search is None:
+        additional_mods_to_search = []
 
     library_entry_lists_by_mods: Dict[str, List] = {}
     unimod_regex = re.compile(r".\(UniMod:[0-9]+\)")
@@ -31,13 +43,20 @@ def split_library_by_mods(
                 for mod in mods
             ]
 
+        # take out additional mods that should be searched but not taken
+        # into account for splitting
+        if additional_mods_to_search != []:
+            mods = [mod for mod in mods if mod not in additional_mods_to_search]
+
+        # precursors containing mods that should not be searched are discarded
+        if np.any([mod not in mods_to_search for mod in mods]):
+            continue
+
         lib_entry_df = pd.DataFrame(data=[lib_entry])
         if len(mods) == 0:
             mods = ["unmodified"]
 
         # Single-mod searches
-        # TODO: how to handle it? When some mods only appear in combination with others?
-        # for mod in mods:
         if len(mods) == 1:
             mod = mods[0]
             if mod not in library_entry_lists_by_mods:
@@ -70,6 +89,29 @@ def split_library_by_mods(
     print("Done filtering, concatenating...")
     libraries_by_mod = {}
     for mod, library_entry_list in library_entry_lists_by_mods.items():
-        libraries_by_mod[mod] = pd.concat(library_entry_list, ignore_index=True)
+        library_df = pd.concat(library_entry_list, ignore_index=True)
+        libraries_by_mod[mod] = library_df
+
+        if logger is None:
+            continue
+
+        if mod == "unmodified" and len(library_df) == 0:
+            logger.warning(
+                "No unmodified precursors found in the library!"
+                " The split without modifications will not yield any results."
+            )
+            continue
+
+        # TODO: refine this so that additional mods are not counted
+        mod_indication_string = "UniMod" if has_unimod_format else "["
+        num_mods_in_lib = (
+            library_df["ModifiedPeptide"].str.contains(mod_indication_string).sum()
+        )
+        if num_mods_in_lib == 0:
+            logger.warning(
+                f"No modified precursors for split {get_mod_combination_str(mods)} were found in"
+                " the library. Search for this split will only be run with unmodified precursors."
+                " Consider adapting your spectral library."
+            )
 
     return libraries_by_mod
