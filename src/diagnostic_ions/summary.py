@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 from matplotlib import cm
 
+DIA_NN_MAX_NUM_MODS = 5
+
 
 def plot_detected_ions(detected_ions_df: pd.DataFrame, result_path: Path) -> None:
     """Generates a table that lists the immonium ions with their counts.
@@ -198,7 +200,8 @@ def get_detected_modifications_with_combinations(
     combinations_sets = [
         frozenset(combination)
         for combination in combinations_percentile
-        if len(combination) + num_additional_modifications <= 5 and len(combination) > 1
+        if len(combination) + num_additional_modifications <= DIA_NN_MAX_NUM_MODS
+        and len(combination) > 1
     ]
 
     modifications = np.unique(np.concatenate(combinations_sorted))

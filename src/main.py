@@ -25,9 +25,6 @@ from src.split_processing.result_aggregation import ResultAggregation
 from src.split_processing.scan_window_splitting import ScanWindowSplitting
 from src.split_processing.spectral_library_splitting import split_library_by_mods
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
-
 
 def make_dia_nn_var_mod_commands(
     mods: List[Union[str, FrozenSet[str]]], additional_mods: List[str]
@@ -60,7 +57,10 @@ def make_dia_nn_additional_param_commands(
 def main(config_path: Path):
     config = Config.from_path(config_path)
     result_path = Path(config.result_dir)
-    # TODO. write logging to file
+
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(filename=result_path / "log.txt", level=logging.INFO)
+
     logger.info("Loading spectra...")
 
     exp = MSExperiment()
@@ -201,14 +201,30 @@ def main(config_path: Path):
                 )
 
                 logger.info(
-                    "Running DIA-NN to create spectral library for mod(s) %s  with command %s...",
+                    "Running DIA-NN to create spectral library for mod(s) %s  with command %s.",
                     mod_combination_str,
                     dia_nn_library_command_for_mod,
                 )
-                subprocess.run(
-                    dia_nn_library_command_for_mod,
-                    check=True,
+                logger.info(
+                    "The logs of the run will be found in the respective DIA-NN logfile. Starting run..."
                 )
+                try:
+                    subprocess.run(
+                        dia_nn_library_command_for_mod,
+                        check=True,
+                    )
+                except subprocess.CalledProcessError as e:
+                    logger.error(
+                        "DIA-NN spectra library creation for mod(s) %s crashed.",
+                        mod_combination_str,
+                    )
+                    raise e
+
+                logger.info(
+                    "Spectral library for mod(s) %s has been created.",
+                    mod_combination_str,
+                )
+
             spectral_library_files_by_mod[mods] = predicted_library_path
     else:
         if config.spectral_library_files_by_mod:
@@ -313,9 +329,13 @@ def main(config_path: Path):
         )
 
         logger.info(
-            "DIA-NN command to run for modification %s is %s. Starting DIA-NN run...",
+            "DIA-NN command to run for modification %s is %s.",
             mod_combination_str,
             dia_nn_command_for_mod,
+        )
+
+        logger.info(
+            "The logs of the run will be found in the respective DIA-NN logfile. Starting run..."
         )
 
         try:
@@ -327,10 +347,10 @@ def main(config_path: Path):
                 "DIA-NN run for modification %s has finished.", mod_combination_str
             )
         except subprocess.CalledProcessError as e:
-            # TODO: capture error message
             logger.warning(
                 "DIA-NN run for modification %s crashed.", mod_combination_str
             )
+            raise e
 
     aggregation = ResultAggregation(config.fdr_threshold, config.normalize_cscores)
     report_all_targets_with_decoys, report_fdr_filtered = aggregation.aggregate_results(
