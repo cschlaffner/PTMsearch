@@ -46,7 +46,7 @@ class Config:
     If no PTMs are specified in modifications_to_search, PTMs and combinations
     will be selected automatically."""
 
-    modifications_additions: List[str]
+    modifications_additional: List[str]
     """Additional PTMs that do not (or rarely) emit immonium ions but are wanted
     to be included in the search. They will be added to the search for each split
     and also to each library prediction. If library-based mode with a single library
@@ -96,6 +96,13 @@ class Config:
     will be filtered and split into one library per split (determined by the
     PTMs/ions). Precursors containing mods that should not be searched
     for are discarded."""
+
+    spectral_library_has_unimod_format: bool = True
+    """If a spectral library for filtering is provided: whether PTMs
+    in the library are given in UniMod format (e.g Y(UniMod:21)). If
+    not, they must be given in mass difference format (e.g. Y[79.9663]).
+    Other formats are not supported and result in the PTMs not being
+    found during library filtering."""
 
     database_for_library_prediction: str = ""
     """If library-free mode is used, you must specify a database that will

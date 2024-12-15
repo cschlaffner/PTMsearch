@@ -1,3 +1,5 @@
+from typing import FrozenSet, List, Tuple
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -84,22 +86,24 @@ def detected_ions_df() -> pd.DataFrame:
 
 
 @pytest.fixture
-def mods_combinations_no_threshold() -> pd.DataFrame:
+def mods_combinations_no_threshold() -> Tuple[List[str], List[FrozenSet[str]]]:
     return [k_1, k_34], [frozenset([k_1, y_21]), frozenset([k_1, y_21, k_34])]
 
 
 @pytest.fixture
-def mods_combinations_no_threshold_additional_mods() -> pd.DataFrame:
+def mods_combinations_no_threshold_additional_mods() -> (
+    Tuple[List[str], List[FrozenSet[str]]]
+):
     return [k_1, k_34, y_21], []
 
 
 @pytest.fixture
-def mods_combinations_window_threshold() -> pd.DataFrame:
+def mods_combinations_window_threshold() -> Tuple[List[str], List[FrozenSet[str]]]:
     return [k_1, k_34], [frozenset([k_1, y_21])]
 
 
 @pytest.fixture
-def mods_combinations_percentile_threshold() -> pd.DataFrame:
+def mods_combinations_percentile_threshold() -> Tuple[List[str], List[FrozenSet[str]]]:
     return [k_1, k_34, y_21], [frozenset([k_1, y_21])]
 
 
@@ -123,7 +127,7 @@ def mods_combinations_percentile_threshold() -> pd.DataFrame:
         ),
     ],
 )
-def test_splitting_with_mods(
+def test_mod_selection(
     detection_count_percentile: float,
     detection_count_min: int,
     num_additional_modifications: int,

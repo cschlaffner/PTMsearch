@@ -120,7 +120,7 @@ def main(config_path: Path):
                 detected_ions_df,
                 config.detection_count_percentile,
                 config.detection_count_min,
-                len(config.modifications_additions),
+                len(config.modifications_additional),
             )
         )
 
@@ -137,7 +137,7 @@ def main(config_path: Path):
         ],
     )
 
-    if len(config.modifications_additions) > 0:
+    if len(config.modifications_additional) > 0:
         if config.library_free:
             library_log_text = "and added to spectral library prediction"
         else:
@@ -150,7 +150,7 @@ def main(config_path: Path):
 
         logger.info(
             "Additional modifications %s will be added to search %s.",
-            config.modifications_additions,
+            config.modifications_additional,
             library_log_text,
         )
 
@@ -173,7 +173,7 @@ def main(config_path: Path):
 
             if not predicted_library_path.exists():
                 var_mod_commands_for_lib = make_dia_nn_var_mod_commands(
-                    mods, config.modifications_additions
+                    mods, config.modifications_additional
                 )
 
                 additional_param_commands_lib = make_dia_nn_additional_param_commands(
@@ -234,10 +234,13 @@ def main(config_path: Path):
             library = pd.read_csv(
                 config.spectral_library_for_filtering_path, delimiter="\t"
             )
-            # TODO: add including configurable mods (to search and to ignore)
-            # and throwing an error or at least a notification if the SL for one of the specified mods/combs is empty/contains only unmod spectra
             spectral_library_df_by_mod = split_library_by_mods(
-                library, False, modification_combinations
+                library,
+                config.spectral_library_has_unimod_format,
+                modifications_to_search,
+                modification_combinations,
+                config.modifications_additional,
+                logger,
             )
             spectral_library_files_by_mod = {}
             for mods, library_df in spectral_library_df_by_mod.items():
@@ -245,7 +248,7 @@ def main(config_path: Path):
                     result_path
                     / f"spectral_library_{get_mod_combination_str(mods)}.tsv"
                 )
-                library_df.to_csv(library_path, sep="\t")
+                library_df.to_csv(library_path, sep="\t", index=False)
                 spectral_library_files_by_mod[mods] = library_path
 
     logger.info("Splitting scan windows by modifications ...")
@@ -306,7 +309,7 @@ def main(config_path: Path):
         spectral_library_file_for_mod = spectral_library_files_by_mod[mods]
 
         var_mod_commands_for_mods = make_dia_nn_var_mod_commands(
-            mods, config.modifications_additions
+            mods, config.modifications_additional
         )
 
         additional_param_commands_search = make_dia_nn_additional_param_commands(

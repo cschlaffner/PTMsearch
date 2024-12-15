@@ -13,13 +13,25 @@ from src.diagnostic_ions.utils import (
 
 # expecting library to be tsv
 def split_library_by_mods(
-    spectrum_library: pd.DataFrame,
+    spectral_library: pd.DataFrame,
     has_unimod_format: bool,
     mods_to_search: List[str],
     mod_combinations_to_search: Optional[List[FrozenSet[str]]] = None,
     additional_mods_to_search: Optional[List[str]] = None,
     logger: Optional[logging.Logger] = None,
 ) -> Dict[str, pd.DataFrame]:
+    """Splits the spectral library according to PTMs, taking into account
+    the combinations. Each single PTM and combination gets its own library.
+    For a combination, all precursors that carry a subset of the set of
+    PTMs are sorted into the corresponding library. Additional mods are
+    ignored during search, i.e., the respective precursors are sorted into
+    the libraries they would be sorted in without the additional mods.
+    Precursors that carry PTMs that were not specified are discarded.
+    Each resulting library contains all unmodified precursors.
+    The input library is expected to be in TSV format and must have DIA-NN
+    compatible columns. The PTMs within the library must be either given in
+    UniMod format (e.g Y(UniMod:21)) or in mass difference format
+    (e.g. Y[79.9663])."""
 
     if mod_combinations_to_search is None:
         mod_combinations_to_search = []
@@ -30,7 +42,7 @@ def split_library_by_mods(
     unimod_regex = re.compile(r".\(UniMod:[0-9]+\)")
     mass_diff_regex = re.compile(r".\[[0-9]+.[0-9]+\]")
 
-    for lib_entry in spectrum_library.itertuples(index=False):
+    for lib_entry in spectral_library.itertuples(index=False):
         # explicit string setting to please typecheck
         sequence = str(lib_entry.ModifiedPeptide)
         if has_unimod_format:
