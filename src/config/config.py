@@ -114,8 +114,8 @@ class Config:
     """Additional parameters that should be added for the library prediction
     with DIA-NN (if library-free mode is used), such as cut, min-pr-mz etc.
     The mandatory parameters (gen-spec-lib, fasta-search, predictor, out-lib,
-    fasta, strip-unknown-mods), additional parameters (pg-level(automatically
-    set to 2)) and the respective PTMs are already added automatically."""
+    fasta, strip-unknown-mods) and the respective PTMs are already added
+    automatically."""
 
     dia_nn_search_params: Dict[str, Union[str, int]] = field(default_factory=lambda: {})
     """Additional parameters that should be added for the DIA-NN search, such as mass-acc,
@@ -123,8 +123,7 @@ class Config:
     diagnostic ion detection (although DIA-NN always treats the value as ppm, not Da).
     The mandatory parameters (f (the input file), lib, out) further parameters
     (qvalue (set to 1 because aggregated q-value calculation is conducted afterwards),
-    decoy-report, no-prot-inf, pg-level (automatically set to 2))
-    and the respective PTMs are already added automatically."""
+    decoy-report, no-prot-inf) and the respective PTMs are already added automatically."""
 
     detection_count_percentile: float = 1.0
     """If PTMs and combinations should be detected automatically: Consider only the

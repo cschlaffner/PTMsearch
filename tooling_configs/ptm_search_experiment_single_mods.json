@@ -26,7 +26,8 @@
         "mass-acc": 10,
         "mass-acc-ms1": 20,
         "window": 0,
-        "threads": 8
+        "threads": 8,
+        "pg-level": 2
     },
     "modifications_to_search": [
         "K(UniMod:1)",

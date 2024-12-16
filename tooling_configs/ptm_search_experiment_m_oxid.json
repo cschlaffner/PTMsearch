@@ -23,13 +23,15 @@
         "min-fr-mz": 200,
         "max-fr-mz": 2000,
         "missed-cleavages": 2,
-        "var-mods": 3
+        "var-mods": 3,
+        "pg-level": 2
     },
     "dia_nn_search_params": {
         "mass-acc": 10,
         "mass-acc-ms1": 20,
         "window": 0,
-        "threads": 8
+        "threads": 8,
+        "pg-level": 2
     },
     "modifications_to_search": [
         "K(UniMod:1)",

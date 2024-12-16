@@ -12,18 +12,16 @@ from src.config.config import Config
 from src.diagnostic_ions.detection import DiagnosticIonDetector
 from src.diagnostic_ions.summary import (
     get_detected_modifications_with_combinations,
-    plot_detected_ion_combinations,
-    plot_detected_ions,
-)
+    plot_detected_ion_combinations, plot_detected_ions)
 from src.diagnostic_ions.utils import (
     get_mod_combination_str,
-    modification_unimod_format_to_dia_nn_varmod_format,
-)
+    modification_unimod_format_to_dia_nn_varmod_format)
 from src.mzml_processing.extraction import ScanWindowExtractor
 from src.mzml_processing.utils import get_diann_compatible_mzml_output_file
 from src.split_processing.result_aggregation import ResultAggregation
 from src.split_processing.scan_window_splitting import ScanWindowSplitting
-from src.split_processing.spectral_library_splitting import split_library_by_mods
+from src.split_processing.spectral_library_splitting import \
+    split_library_by_mods
 
 
 def make_dia_nn_var_mod_commands(
@@ -187,7 +185,6 @@ def main(config_path: Path):
                         "--fasta-search",
                         "--predictor",
                         "--strip-unknown-mods",
-                        "--pg-level 2",
                         # DIA-NN does automatic extension removal for the library path,
                         # i.e. takes the path before the last '.', so if there is a '.'
                         # in the path to the result directory, the resulting library
@@ -323,7 +320,6 @@ def main(config_path: Path):
                 f"--lib {spectral_library_file_for_mod}",
                 f"--out {dia_nn_report_path}",
                 "--qvalue 1",
-                "--pg-level 2",
                 "--decoy-report",
                 "--no-prot-inf",
             ]
