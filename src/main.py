@@ -360,7 +360,7 @@ def main(config_path: Path):
                 "DIA-NN run for modification %s has finished.", mod_combination_str
             )
         except subprocess.CalledProcessError as e:
-            logger.warning(
+            logger.error(
                 "DIA-NN run for modification %s crashed.", mod_combination_str
             )
             raise e

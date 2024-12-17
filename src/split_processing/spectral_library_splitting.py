@@ -91,6 +91,8 @@ def split_library_by_mods(
     for mod in mods_to_search + mod_combinations_to_search + ["unmodified"]:
         if mod not in library_entry_lists_by_mods:
             library_entry_lists_by_mods[mod] = []
+        if logger is not None:
+            logger.info("%s: %s precursors", mod, len(library_entry_lists_by_mods[mod]))
 
     # Add unmodified entries to all other libraries
     for mod in library_entry_lists_by_mods:
@@ -114,9 +116,12 @@ def split_library_by_mods(
 
         if len(library_df) == 0:
             logger.warning(
-                "No unmodified precursors found in the library!"
+                f"No precursors for {mod} found in the library!"
                 f" The split {mod} will not yield any results."
             )
+            continue
+        
+        if mod == "unmodified":
             continue
 
         # TODO: refine this so that additional mods are not counted
