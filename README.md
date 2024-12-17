@@ -5,6 +5,8 @@ Searching in DIA Proteomics Data". It leverages immonium ion from stepped fragme
 
 So far, this software has only been run on Linux. Although it should probably also run on Windows if the file paths are adapted accordingly, but that has not been tested yet. Some fuctionality has not been optimized yet, e.g., DIA-NN runs are conducted sequentially and not in parallel. Currently, only precursor identification is included, but no protein inference after aggregation. The list of immonium ions that is used during detection, stored in `src/diagnostic_ions/known_ions_only_unimod.csv`, is a subset of the immonium ion data reported by Hung et al. (2007) and Zolg et al. (2018). It can be edited or an own provided file in the same format can be used.
 
+This repository contains the main implementation (`src`), tests for core functions (`test`), Jupyter notebooks (`notebooks`) that were used for data post-processing, plot creation, and some intermediate analysis (with possibly inconsistent filepaths due to usage on different machines), and all software configs that were used for the experiments for the thesis (`tooling_configs`), including DIA-NN standalone runs (`tooling_configs/dia_nn_standalone`). Also, some scripts for immonium ion detection analysis are in the main folder since they had to be run from there.
+
 The software is run via command line with Python, tested for Python version 3.11.8. The required packages with versions are listed in `enviroment.yml`. After setup, the software can be run with the command 
 ```
 python -m src.main <path/to/input/config>
@@ -28,17 +30,14 @@ All input paths, settings etc. have to be provided via a JSON file. `src/config/
 - All other required inputs are listed in `src/config/config.py`.
     
 
-- Results
-    - one report with all target and decoys precursors unfiltered (report_aggregated_all_targets_with_decoys.csv), one with targets filtered by FDR threshold (report_aggregated_fdr_filtered.csv).
-    - report columns same as in DIA-NN report (ref) For decoys a lot of columns are empty and some are shifted because the decoys output from DIA-NN does not assign all columns correctly. Further, the protein information columns were added split-wise. Since protein inference after aggregation has not been implemented yet, most protein-related columns are probably useless.
-    - additional columns: q_value_aggregated: q-value computed after aggregation (use this instead of Q.Value, that one is within the split and useless).
-    remapped_id: the spectra identifiers per split have to be renamed because DIA-NN needs continuous input. The renamed identifier of the spectrum in which the precursor was found. (MS2.Scan from DIA-NN only gives the index of the MS2 spectra when listing only the MS2 spectra -> less useful)
-    original_id: the corresponding spectra identifiers as they were in the original mzML file before renaming.
-    CScore_normalized: this column only occurs if c-score normalization is enabled. Then, the c-scores within each split are normalized to the 0-1 range to avoid skewed distributions if some splits lead to resulting large c-score values. The normalized c-scores are then used for q-value calculation and FDR filtering, the CScore column by DIA-NN should be ignored then.
-    - software currently stores all intermediate results (mzML files and spectrum id mappings, predicted or filtered libraries, DIA-NN reports (add naming)) in the specified result directory -> can require a larger amount of storage space, you might want to delete the intermediate results afterwards
+## Output
 
-- Folder structure
-    - src: the actual software implementation: core functionality and overall workflow. Includes a few TODOs that could be solved for better user-friendliness (mostly additional validation of inputs).
-    - test: unit tests for core functions
-    - notebooks: which I used for data post-processing and plot creation. Also database completion (from UniProt, contaminated and synthetic) and database filtering for a reduced one. The notebooks were for interediate/additional usage during the thesis, therefore are not documented as well and code quality is not emphasized there. Also, some notebooks were used on my laptop and some on the server, so file paths can be inconsistent.
-    - tooling_configs: includes all software configs that I used for my experiments. The two configs for single mods (_single_mods and _single_mods_all_predicted) lead to the same results, the difference is only that one uses spectral libraries that were predicted in standalone runs before, the other includes library prediction in the workflow. Also includes all DIA-NN scripts in an extra folder.
+The software provides an aggregated report with all target and decoys precursors unfiltered (`report_aggregated_all_targets_with_decoys.csv`) and a report with targets filtered by the configured `fdr_threshold` (`report_aggregated_fdr_filtered.csv`).
+The report includes all columns from the split-wise DIA-NN reports. For decoys a lot of columns are empty and some are shifted because the decoys output from DIA-NN does not assign all columns correctly, which is fixed for the most important columns in the aggregated report. Further, the protein information was calculated split-wise by DIA-NN. Since protein inference after aggregation has not been implemented yet, most protein-related columns are probably useless.
+The following columns are added in the aggregated report:
+- `q_value_aggregated`: q-value computed after aggregation. This should be used instead of the split-wise calculated `Q.Value` from the DIA-NN report which is incorrect after aggregation.
+- `remapped_id`: the renamed identifier of the spectrum in which the precursor was found. Because the spectra identifiers per split have to be renamed as DIA-NN needs continuous input.
+- `original_id`: the corresponding spectra identifiers as they were in the original provided mzML file before renaming.
+- `CScore_normalized`: this column only occurs if c-score normalization is enabled (config parameter `normalize_cscores`). Then, the c-scores within each split are normalized to the 0-1 range to avoid skewed distributions if some splits lead to resulting large c-score values. The normalized c-scores are then used for q-value calculation and FDR filtering, the `CScore` column calculated by DIA-NN should be ignored in this case.
+
+Currently, the software stores all intermediate results (mzML files and spectrum id mappings, predicted or filtered libraries, DIA-NN reports for splits) in the specified result directory. This can require a larger amount of storage space, so you might want to delete the intermediate results afterwards.
