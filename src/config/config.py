@@ -97,19 +97,8 @@ class Config:
     will be filtered and split into one library per split (determined by the
     PTMs/ions). Precursors containing mods that should not be searched
     for are discarded.
-    Currently, this feature has been tested (aside from
-    unit tests) for a very small reduced library (10 precursors). A large
-    library (about 4.4M precursors) led to an out-of-memory error"""
-
-    spectral_library_has_unimod_format: bool = True
-    """If a spectral library for filtering is provided: whether PTMs
-    in the library are given in UniMod format (e.g Y(UniMod:21)). If
-    not, they must be given in mass difference format (e.g. Y[79.9663]).
-    Other formats are not supported and result in the PTMs not being
-    found during library filtering. The mass diff format is still highly
-    experimental since it was only included in tests for filtering, not in
-    practical runs or DIA-NN search, so it is not clear of such a library
-    is currently usable."""
+    Currently experimental and does not scale well for large libraries
+    in terms of memory requirements, therefore needs optimization."""
 
     database_for_library_prediction: str = ""
     """If library-free mode is used, you must specify a database that will
