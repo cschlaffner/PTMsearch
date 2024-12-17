@@ -210,7 +210,7 @@ def test_library_splitting_unimod(
     expected_result_libs = request.getfixturevalue(expected_result_libs_fixture)
 
     result_libs = split_library_by_mods(
-        spectral_library_df, True, mods, combinations, additional_mods
+        spectral_library_df, mods, combinations, additional_mods
     )
     assert result_libs.keys() == expected_result_libs.keys()
     for mod_split, result_lib in result_libs.items():
@@ -238,7 +238,11 @@ def test_library_splitting_mass_diff(
     libraries_by_mods_mass_diff: Dict[str, pd.DataFrame],
 ) -> None:
     result_libs = split_library_by_mods(
-        spectral_library_df_mass_diff_format, False, [k_1, y_21], [], []
+        spectral_library_df_mass_diff_format,
+        [k_1, y_21],
+        mod_combinations_to_search=[],
+        additional_mods_to_search=[],
+        has_unimod_format=False,
     )
     assert result_libs.keys() == libraries_by_mods_mass_diff.keys()
     for mod_split, result_lib in result_libs.items():

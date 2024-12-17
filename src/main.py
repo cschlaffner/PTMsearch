@@ -243,7 +243,6 @@ def main(config_path: Path):
             )
             spectral_library_df_by_mod = split_library_by_mods(
                 library,
-                config.spectral_library_has_unimod_format,
                 modifications_to_search,
                 modification_combinations,
                 config.modifications_additional,
@@ -360,9 +359,7 @@ def main(config_path: Path):
                 "DIA-NN run for modification %s has finished.", mod_combination_str
             )
         except subprocess.CalledProcessError as e:
-            logger.error(
-                "DIA-NN run for modification %s crashed.", mod_combination_str
-            )
+            logger.error("DIA-NN run for modification %s crashed.", mod_combination_str)
             raise e
 
     aggregation = ResultAggregation(config.fdr_threshold, config.normalize_cscores)

@@ -14,10 +14,10 @@ from src.diagnostic_ions.utils import (
 # expecting library to be tsv
 def split_library_by_mods(
     spectral_library: pd.DataFrame,
-    has_unimod_format: bool,
     mods_to_search: List[str],
     mod_combinations_to_search: Optional[List[FrozenSet[str]]] = None,
     additional_mods_to_search: Optional[List[str]] = None,
+    has_unimod_format: bool = True,
     logger: Optional[logging.Logger] = None,
 ) -> Dict[str, pd.DataFrame]:
     """Splits the spectral library according to PTMs, taking into account
@@ -31,7 +31,9 @@ def split_library_by_mods(
     The input library is expected to be in TSV format and must have DIA-NN
     compatible columns. The PTMs within the library must be either given in
     UniMod format (e.g Y(UniMod:21)) or in mass difference format
-    (e.g. Y[79.9663])."""
+    (e.g. Y[79.9663]). Mass diff format has not been tested with
+    an actual library and for compatibility with the rest of the
+    software, so it is currently not used in the main workflow."""
 
     if mod_combinations_to_search is None:
         mod_combinations_to_search = []
@@ -120,7 +122,7 @@ def split_library_by_mods(
                 f" The split {mod} will not yield any results."
             )
             continue
-        
+
         if mod == "unmodified":
             continue
 

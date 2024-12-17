@@ -96,7 +96,10 @@ class Config:
     for all PTMs (and potentially combinations): this library
     will be filtered and split into one library per split (determined by the
     PTMs/ions). Precursors containing mods that should not be searched
-    for are discarded."""
+    for are discarded.
+    Currently, this feature has been tested (aside from
+    unit tests) for a very small reduced library (10 precursors). A large
+    library (about 4.4M precursors) led to an out-of-memory error"""
 
     spectral_library_has_unimod_format: bool = True
     """If a spectral library for filtering is provided: whether PTMs

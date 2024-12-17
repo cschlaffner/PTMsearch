@@ -9,8 +9,9 @@
 
 - input:
     - stepped fragmentation data: dia-nn compatible (link, command line command) stepped fragmentation mzML file. Currently, only a single run ("single mzML file) is supported.
-    - library: spectral library for each PTM to search for (own responsibility, must match specified PTMs and combinations), or single library to be searched/filtered (must contain PTMs in UniMod or mass diff format, must be TSV and compatible for DIA-NN), or just set library-free mode -> will predict libs split-wise automatic with DIA-NN. Last option caveat: DIA-NN predictor only trained for some mods, rest prediction ambiguous/take with grain of salt. (DIA-NN doc VS my results)
-        - mass diff format not tested, only unit-tested for filtering -> might require additonal adaptations for DIA-NN search
+    - library: spectral library for each PTM to search for (own responsibility, must match specified PTMs and combinations), or single library to be searched/filtered (must contain PTMs in UniMod, must be TSV and compatible for DIA-NN), or just set library-free mode -> will predict libs split-wise automatic with DIA-NN. Last option caveat: DIA-NN predictor only trained for some mods, rest prediction ambiguous/take with grain of salt. (DIA-NN doc VS my results)
+        - Filtering: Currently, this feature has been tested (aside from unit tests) for a very small reduced library (10 precursors). A large library (about 4.4M precursors) led to an out-of-memory error. Since this feature was not needed for experiments to the current state, I left it in an
+        experimental state, requiring optimization for upscaling.
     - PTMs to search for: single PTMs and combinations, possible additional PTMs (searched for in every split). PTMs and Combs can also be selected automatically based on detected ions.
     - A DIA-NN executable that is used for search and, if library-free mode is selected, also for library prediction. The software has been tested with DIA-NN 1.8.1, other versions might lead to errors.
     - All input paths, library settings etc. are provided via a JSON file. Config.py lists all configurable parameters with their documentation. Configs for all experiments of my thesis are in folder.
@@ -32,4 +33,4 @@
     - src: the actual software implementation: core functionality and overall workflow. Includes a few TODOs that could be solved for better user-friendliness (mostly additional validation of inputs).
     - test: unit tests for core functions
     - notebooks: which I used for data post-processing and plot creation. Also database completion (from UniProt, contaminated and synthetic) and database filtering for a reduced one. The notebooks were for interediate/additional usage during the thesis, therefore are not documented as well and code quality is not emphasized there. Also, some notebooks were used on my laptop and some on the server, so file paths can be inconsistent.
-    - tooling_configs: includes all software configs that I used for my experiments. Also includes all DIA-NN scripts in an extra folder.
+    - tooling_configs: includes all software configs that I used for my experiments. The two configs for single mods (_single_mods and _single_mods_all_predicted) lead to the same results, the difference is only that one uses spectral libraries that were predicted in standalone runs before, the other includes library prediction in the workflow. Also includes all DIA-NN scripts in an extra folder.
