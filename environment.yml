@@ -91,4 +91,3 @@ dependencies:
       - tzdata==2024.1
       - urwid==2.6.11
       - urwid-readline==0.14
-prefix: /hpi/fs00/home/andrea.nathansen/miniconda3/envs/ptm-search
