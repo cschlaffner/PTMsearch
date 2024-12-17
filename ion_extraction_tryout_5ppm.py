@@ -34,7 +34,7 @@ extractor = ScanWindowExtractor(
 
 exp_higher_energy = extractor.extract_higher_energy_windows(exp)
 
-ppm_tolerance = 10
+ppm_tolerance = 5
 snr_threshold = 3
 
 
