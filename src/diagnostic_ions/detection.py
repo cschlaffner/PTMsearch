@@ -60,7 +60,7 @@ class DiagnosticIonDetector:
     def _remove_noise(
         self, spectrum_mz: np.ndarray, intensities: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """check if the spectrum should be analysed at all with regard to the
+        """Check if the spectrum should be analysed at all with regard to the
         signal to noise ratio (maximum/mean) threshold and select all peaks larger
         than the mean intensity."""
         if len(intensities) == 0:
@@ -182,5 +182,3 @@ class DiagnosticIonDetector:
         )
 
         return result
-
-    # TODO: update docs to the df using version

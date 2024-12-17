@@ -81,7 +81,8 @@ class ScanWindowExtractor:
     def rename_spectrum_ids(
         self, exp: MSExperiment, return_id_mapping: bool
     ) -> Union[MSExperiment, Tuple[MSExperiment, pd.DataFrame]]:
-        # TODO: add test
+        """DIA-NN requires spectrum IDs to be continuous starting at 1, so IDs
+        of spectra in created splits have to be renamed."""
         spectra = exp.getSpectra()
         original_ids = []
         renamed_ids = []

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import FrozenSet, List, Tuple
+from typing import FrozenSet, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -93,7 +93,7 @@ def plot_detected_ion_combinations(
     detected_ions_df: pd.DataFrame,
     result_path: Path,
     detection_count_percentile: float,
-    plot_fractions: List[float] = [0.5, 0.8, 0.9],
+    plot_fractions: Optional[List[float]] = None,
     topk: int = 50,
     figsize: Tuple[int, int] = (10, 15),
 ) -> None:
@@ -102,6 +102,8 @@ def plot_detected_ion_combinations(
     more than top 50, you should make the figure taller. You can
     specify percentiles (plot_fractions) which will be marked in the
     plot (if their limits are within the top-k window.)"""
+    if plot_fractions is None:
+        plot_fractions = [0.5, 0.8, 0.9]
 
     combinations, counts = get_modification_combinations_with_counts(
         detected_ions_df, return_unimod=False

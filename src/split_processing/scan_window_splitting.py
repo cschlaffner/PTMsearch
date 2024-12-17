@@ -163,7 +163,6 @@ class ScanWindowSplitting:
         lower_energy_windows_df.set_index(
             ["ms1_spectrum_id", "ms2_spectrum_mz"], inplace=True
         )
-        # TODO: reset index beforehand?
         higher_energy_windows_detected_ions_df.set_index(
             ["ms1_spectrum_id", "ms2_spectrum_mz"], inplace=True
         )

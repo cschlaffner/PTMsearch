@@ -11,7 +11,6 @@ from src.diagnostic_ions.utils import (
 )
 
 
-# expecting library to be tsv
 def split_library_by_mods(
     spectral_library: pd.DataFrame,
     mods_to_search: List[str],
@@ -51,7 +50,6 @@ def split_library_by_mods(
             mods = np.unique(re.findall(unimod_regex, sequence))
         else:
             mods = np.unique(re.findall(mass_diff_regex, sequence))
-            # TODO: check
             mods = [
                 diff_mono_mass_to_unimod_format(mod[0], float(mod[2:-1]))
                 for mod in mods

@@ -34,7 +34,7 @@ mz_mod_1 = 100.0
 mz_mod_2 = 200.0
 mz_mod_3 = 300.0
 
-# not exact borders due to floating point errors, TODO: fix?
+# not exact borders due to floating point errors
 mz_mod_1_threshold_border_higher = 100.000499999
 mz_mod_1_threshold_border_lower = 99.99950000001
 
