@@ -12,16 +12,18 @@ from src.config.config import Config
 from src.diagnostic_ions.detection import DiagnosticIonDetector
 from src.diagnostic_ions.summary import (
     get_detected_modifications_with_combinations,
-    plot_detected_ion_combinations, plot_detected_ions)
+    plot_detected_ion_combinations,
+    plot_detected_ions,
+)
 from src.diagnostic_ions.utils import (
     get_mod_combination_str,
-    modification_unimod_format_to_dia_nn_varmod_format)
+    modification_unimod_format_to_dia_nn_varmod_format,
+)
 from src.mzml_processing.extraction import ScanWindowExtractor
 from src.mzml_processing.utils import get_diann_compatible_mzml_output_file
 from src.split_processing.result_aggregation import ResultAggregation
 from src.split_processing.scan_window_splitting import ScanWindowSplitting
-from src.split_processing.spectral_library_splitting import \
-    split_library_by_mods
+from src.split_processing.spectral_library_splitting import split_library_by_mods
 
 
 def make_dia_nn_var_mod_commands(
@@ -356,11 +358,17 @@ def main(config_path: Path):
         result_path, file_paths_by_mods
     )
 
+    logger.info("Aggregation has finished.")
+
     report_all_targets_with_decoys.to_csv(
         result_path / "report_aggregated_all_targets_with_decoys.csv", index=False
     )
     report_fdr_filtered.to_csv(
         result_path / "report_aggregated_fdr_filtered.csv", index=False
+    )
+
+    logger.info(
+        "Result reports were written to the specified directory %s .", result_path
     )
 
 

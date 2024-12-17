@@ -73,12 +73,13 @@ class Config:
     be discarded. SNR of a spectrum is calculated as peak_intensity_max / peak_intensity_mean."""
 
     fdr_threshold: float = 0.01
-    """The FDR/q-value at which the aggregated output report should be filtered.
+    """The FDR at which the aggregated output report should be filtered.
     Default is 1%."""
 
     known_diagnostic_ions_file: str = "src/diagnostic_ions/known_ions_only_unimod.csv"
     """Path to a CSV file containing information about diagnostic ions for the detection.
-    Current one contains selected ions from (TODO: cite) that are listed in UniMod.
+    Current one contains selected ions from Zolg et al. (2018) and Hung et al. (2007)
+    that are listed in UniMod.
     If you provide your own ions file, make sure that it contains only ions for PTMs that
     are listed in UniMod. Otherwise, it's not compatible with prediction and search with DIA-NN."""
 
