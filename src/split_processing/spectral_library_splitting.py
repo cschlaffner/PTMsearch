@@ -87,30 +87,35 @@ def split_library_by_mods(
                             lib_entry_df
                         )
 
+    # If no precursors for a PTM or combination were detected: create empty libraries
+    for mod in mods_to_search + mod_combinations_to_search + ["unmodified"]:
+        if mod not in library_entry_lists_by_mods:
+            library_entry_lists_by_mods[mod] = []
+
     # Add unmodified entries to all other libraries
     for mod in library_entry_lists_by_mods:
         if mod == "unmodified":
             continue
-        library_entry_lists_by_mods[mod] = np.concatenate(
-            [
-                library_entry_lists_by_mods[mod],
-                library_entry_lists_by_mods["unmodified"],
-            ]
+        library_entry_lists_by_mods[mod] = (
+            library_entry_lists_by_mods[mod] + library_entry_lists_by_mods["unmodified"]
         )
 
-    print("Done filtering, concatenating...")
     libraries_by_mod = {}
     for mod, library_entry_list in library_entry_lists_by_mods.items():
-        library_df = pd.concat(library_entry_list, ignore_index=True)
+        library_df = (
+            pd.concat(library_entry_list, ignore_index=True)
+            if len(library_entry_list) > 0
+            else pd.DataFrame()
+        )
         libraries_by_mod[mod] = library_df
 
         if logger is None:
             continue
 
-        if mod == "unmodified" and len(library_df) == 0:
+        if len(library_df) == 0:
             logger.warning(
                 "No unmodified precursors found in the library!"
-                " The split without modifications will not yield any results."
+                f" The split {mod} will not yield any results."
             )
             continue
 

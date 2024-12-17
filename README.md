@@ -10,6 +10,7 @@
 - input:
     - stepped fragmentation data: dia-nn compatible (link, command line command) stepped fragmentation mzML file. Currently, only a single run ("single mzML file) is supported.
     - library: spectral library for each PTM to search for (own responsibility, must match specified PTMs and combinations), or single library to be searched/filtered (must contain PTMs in UniMod or mass diff format, must be TSV and compatible for DIA-NN), or just set library-free mode -> will predict libs split-wise automatic with DIA-NN. Last option caveat: DIA-NN predictor only trained for some mods, rest prediction ambiguous/take with grain of salt. (DIA-NN doc VS my results)
+        - mass diff format not tested, only unit-tested for filtering -> might require additonal adaptations for DIA-NN search
     - PTMs to search for: single PTMs and combinations, possible additional PTMs (searched for in every split). PTMs and Combs can also be selected automatically based on detected ions.
     - A DIA-NN executable that is used for search and, if library-free mode is selected, also for library prediction. The software has been tested with DIA-NN 1.8.1, other versions might lead to errors.
     - All input paths, library settings etc. are provided via a JSON file. Config.py lists all configurable parameters with their documentation. Configs for all experiments of my thesis are in folder.

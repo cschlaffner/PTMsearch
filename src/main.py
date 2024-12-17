@@ -154,8 +154,6 @@ def main(config_path: Path):
             library_log_text,
         )
 
-    # TODO: add information about additional combinations
-
     if config.library_free:
         # TODO: validate that the path is there
         database_path = config.database_for_library_prediction
@@ -163,6 +161,10 @@ def main(config_path: Path):
             [modifications_to_search, modification_combinations, ["unmodified"]]
         )
         spectral_library_files_by_mod = {}
+
+        logger.info(
+            "Library-free mode was selected. Spectral libraries are predicted by DIA-NN."
+        )
 
         for mods in mods_for_lib_creation:
             mod_combination_str = get_mod_combination_str(mods)
@@ -225,11 +227,17 @@ def main(config_path: Path):
                 )
 
             spectral_library_files_by_mod[mods] = predicted_library_path
+        logger.info("Prediction of all required spectral libraries has finished.")
+
     else:
         if config.spectral_library_files_by_mod:
             # TODO: add validation that the keys match the mods (and combinations) to search and contains one "unmodified"
+            logger.info(
+                "A spectral library per split was provided. Using those libraries for search."
+            )
             spectral_library_files_by_mod = config.spectral_library_files_by_mod
         else:
+            logger.info("Splitting provided spectral library...")
             library = pd.read_csv(
                 config.spectral_library_for_filtering_path, delimiter="\t"
             )
@@ -242,6 +250,8 @@ def main(config_path: Path):
                 logger,
             )
             spectral_library_files_by_mod = {}
+
+            # TODO: add validation/check if there are empty libraries
             for mods, library_df in spectral_library_df_by_mod.items():
                 library_path = (
                     result_path
@@ -249,6 +259,7 @@ def main(config_path: Path):
                 )
                 library_df.to_csv(library_path, sep="\t", index=False)
                 spectral_library_files_by_mod[mods] = library_path
+            logger.info("Spectral library splitting has finished.")
 
     logger.info("Splitting scan windows by modifications ...")
 
@@ -262,6 +273,7 @@ def main(config_path: Path):
         modification_combinations,
     )
 
+    # TODO: add validation/check if there are empty splits
     logger.info(
         "Searching for the following splits: %s.",
         [
