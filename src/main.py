@@ -244,9 +244,9 @@ def main(config_path: Path):
             spectral_library_df_by_mod = split_library_by_mods(
                 library,
                 modifications_to_search,
-                modification_combinations,
-                config.modifications_additional,
-                logger,
+                mod_combinations_to_search=modification_combinations,
+                additional_mods_to_search=config.modifications_additional,
+                logger=logger,
             )
             spectral_library_files_by_mod = {}
 
