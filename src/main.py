@@ -7,7 +7,6 @@ from typing import Dict, FrozenSet, List, Union
 import numpy as np
 import pandas as pd
 from pyopenms import MSExperiment, MzMLFile
-
 from src.config.config import Config
 from src.diagnostic_ions.detection import DiagnosticIonDetector
 from src.diagnostic_ions.summary import (
@@ -54,12 +53,8 @@ def make_dia_nn_additional_param_commands(
     return [f"--{param} {value}" for param, value in params.items()]
 
 
-def main(config_path: Path):
-    config = Config.from_path(config_path)
+def main(config: Config, logger: logging.Logger):
     result_path = Path(config.result_dir)
-
-    logger = logging.getLogger(__name__)
-    logging.basicConfig(filename=result_path / "log.txt", level=logging.INFO)
 
     logger.info("Loading spectra...")
 
@@ -79,6 +74,8 @@ def main(config_path: Path):
     ms1_windows = extractor.extract_ms1_windows(ms1_and_higher_energy_windows)
 
     ms1_and_lower_energy_windows = extractor.extract_ms1_and_lower_energy_windows(exp)
+
+    # ---------------------- Diagnostic ion detection -------------------
 
     ions_file = result_path / "detected_ions.csv"
 
@@ -110,10 +107,12 @@ def main(config_path: Path):
         )
         return
 
+    # ---------------------- Determining PTMs and combinations to search -------------------
+
     if config.modifications_to_search != []:
         modifications_to_search = config.modifications_to_search
         modification_combinations = config.modification_combinations
-        # TODO: add validation that config mod combinations are not single mods and all mods in comb. have to be listed in mod list
+        # TODO: add validation that config mod combinations are not single mods
     else:
         modifications_to_search, modification_combinations = (
             get_detected_modifications_with_combinations(
@@ -124,12 +123,14 @@ def main(config_path: Path):
             )
         )
 
+    # TODO: add check if it exactly contains a combination to not discard mods that should only
+    # be searched in combination!
     detected_ions_df = detected_ions_df[
         detected_ions_df["letter_and_unimod_format_mod"].isin(modifications_to_search)
     ]
 
     logger.info(
-        "Considering mods %s and combinations %s for window splitting and spectrum library handling.",
+        "Considering mods %s and combinations %s for window splitting and spectral library preparation.",
         modifications_to_search,
         [
             get_mod_combination_str(mod_combination)
@@ -153,6 +154,8 @@ def main(config_path: Path):
             config.modifications_additional,
             library_log_text,
         )
+
+    # ---------------------- Spectral library preparation -------------------
 
     if config.library_free:
         # TODO: validate that the path is there
@@ -215,7 +218,7 @@ def main(config_path: Path):
                         check=True,
                     )
                 except subprocess.CalledProcessError as e:
-                    logger.error(
+                    logger.exception(
                         "DIA-NN spectra library creation for mod(s) %s crashed.",
                         mod_combination_str,
                     )
@@ -260,6 +263,8 @@ def main(config_path: Path):
                 spectral_library_files_by_mod[mods] = library_path
             logger.info("Spectral library splitting has finished.")
 
+    # ---------------------- Scan window splitting -------------------
+
     logger.info("Splitting scan windows by modifications ...")
 
     windows_by_mods = ScanWindowSplitting(
@@ -272,7 +277,21 @@ def main(config_path: Path):
         modification_combinations,
     )
 
-    # TODO: add validation/check if there are empty splits
+    if config.modifications_to_search != []:
+        for mod in config.modifications_to_search:
+            if not mod in windows_by_mods:
+                logger.warning(
+                    "Ions for modification %s were not detected in any windows.",
+                    mod,
+                )
+    if config.modification_combinations != []:
+        for mod_combination in config.modification_combinations:
+            if not mod_combination in windows_by_mods:
+                logger.warning(
+                    "Ion combination %s was not detected in any windows.",
+                    get_mod_combination_str(mod_combination),
+                )
+
     logger.info(
         "Searching for the following splits: %s.",
         [
@@ -280,6 +299,8 @@ def main(config_path: Path):
             for mod_combination in list(windows_by_mods.keys())
         ],
     )
+
+    # ---------------------- DIA-NN search -------------------
 
     file_paths_by_mods = {}
 
@@ -359,8 +380,12 @@ def main(config_path: Path):
                 "DIA-NN run for modification %s has finished.", mod_combination_str
             )
         except subprocess.CalledProcessError as e:
-            logger.error("DIA-NN run for modification %s crashed.", mod_combination_str)
+            logger.exception(
+                "DIA-NN run for modification %s crashed.", mod_combination_str
+            )
             raise e
+
+    # ---------------------- Aggregation -------------------
 
     aggregation = ResultAggregation(config.fdr_threshold, config.normalize_cscores)
     report_all_targets_with_decoys, report_fdr_filtered = aggregation.aggregate_results(
@@ -390,4 +415,15 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    main(Path(args.config_path))
+    config = Config.from_path(Path(args.config_path))
+
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(
+        filename=Path(config.result_dir) / "log.txt", level=logging.INFO
+    )
+
+    try:
+        main(config, logger)
+    except BaseException as e:
+        logger.exception(e)
+        raise e

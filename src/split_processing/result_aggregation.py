@@ -172,17 +172,26 @@ class ResultAggregation:
             if mods != "unmodified"
         }
 
-        mods_targets = pd.concat(
-            [mod_result["targets"] for mod_result in mods_splits.values()],
-            ignore_index=True,
-        )
-        mods_decoys = pd.concat(
-            [mod_result["decoys"] for mod_result in mods_splits.values()],
-            ignore_index=True,
-        )
+        if len(mods_splits) > 0:
+            mods_targets = pd.concat(
+                [mod_result["targets"] for mod_result in mods_splits.values()],
+                ignore_index=True,
+            )
 
-        unmods_targets = splits_results["unmodified"]["targets"]
-        unmods_decoys = splits_results["unmodified"]["decoys"]
+            mods_decoys = pd.concat(
+                [mod_result["decoys"] for mod_result in mods_splits.values()],
+                ignore_index=True,
+            )
+        else:
+            mods_targets = pd.DataFrame()
+            mods_decoys = pd.DataFrame()
+
+        if "unmodified" in splits_results:
+            unmods_targets = splits_results["unmodified"]["targets"]
+            unmods_decoys = splits_results["unmodified"]["decoys"]
+        else:
+            unmods_targets = pd.DataFrame()
+            unmods_decoys = pd.DataFrame()
 
         all_targets = pd.concat([mods_targets, unmods_targets], ignore_index=True)
         all_decoys = pd.concat([mods_decoys, unmods_decoys], ignore_index=True)
@@ -245,39 +254,48 @@ class ResultAggregation:
             all_decoys,
         ) = self._get_mods_unmods_all_from_splits(file_paths_by_mods)
 
-        self.plot_densities(
-            result_path,
-            mods_targets,
-            mods_decoys,
-            "modification_splits",
-            normalized=False,
-        )
-        self.plot_densities(
-            result_path,
-            unmods_targets,
-            unmods_decoys,
-            "unmodified_split",
-            normalized=False,
-        )
-        self.plot_densities(
-            result_path, all_targets, all_decoys, "all_splits", normalized=False
+        assert len(all_targets) > 0 and len(all_decoys) > 0, (
+            "No targets and/or no decoys were listed in the results even before FDR filtering. "
+            "Looks like something went wrong regarding configurations or data for this run."
         )
 
-        if self.normalize_cscores:
+        if len(mods_targets) > 0 and len(mods_decoys) > 0:
             self.plot_densities(
                 result_path,
                 mods_targets,
                 mods_decoys,
                 "modification_splits",
-                normalized=True,
+                normalized=False,
             )
+        if len(unmods_targets) > 0 and len(unmods_decoys) > 0:
             self.plot_densities(
                 result_path,
                 unmods_targets,
                 unmods_decoys,
                 "unmodified_split",
-                normalized=True,
+                normalized=False,
             )
+        self.plot_densities(
+            result_path, all_targets, all_decoys, "all_splits", normalized=False
+        )
+
+        if self.normalize_cscores:
+            if len(mods_targets) > 0 and len(mods_decoys) > 0:
+                self.plot_densities(
+                    result_path,
+                    mods_targets,
+                    mods_decoys,
+                    "modification_splits",
+                    normalized=True,
+                )
+            if len(unmods_targets) > 0 and len(unmods_decoys) > 0:
+                self.plot_densities(
+                    result_path,
+                    unmods_targets,
+                    unmods_decoys,
+                    "unmodified_split",
+                    normalized=True,
+                )
             self.plot_densities(
                 result_path, all_targets, all_decoys, "all_splits", normalized=True
             )
