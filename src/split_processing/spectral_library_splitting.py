@@ -61,31 +61,30 @@ def split_library_by_mods(
             mods = [mod for mod in mods if mod not in additional_mods_to_search]
 
         # precursors containing mods that should not be searched are discarded
+        # TODO: adapt/remove to include mods that are in combination but not in search list
         if np.any([mod not in mods_to_search for mod in mods]):
             continue
 
-        lib_entry_df = pd.DataFrame(data=[lib_entry])
         if len(mods) == 0:
             mods = ["unmodified"]
 
         # Single-mod searches
         if len(mods) == 1:
+            # TODO: only add mods that are in mods to search
             mod = mods[0]
             if mod not in library_entry_lists_by_mods:
-                library_entry_lists_by_mods[mod] = [lib_entry_df]
+                library_entry_lists_by_mods[mod] = [lib_entry]
             else:
-                library_entry_lists_by_mods[mod].append(lib_entry_df)
+                library_entry_lists_by_mods[mod].append(lib_entry)
 
         # Mod combination searches
         if mod_combinations_to_search is not None:
             for mod_combination in mod_combinations_to_search:
                 if set(mods).issubset(mod_combination):
                     if mod_combination not in library_entry_lists_by_mods:
-                        library_entry_lists_by_mods[mod_combination] = [lib_entry_df]
+                        library_entry_lists_by_mods[mod_combination] = [lib_entry]
                     else:
-                        library_entry_lists_by_mods[mod_combination].append(
-                            lib_entry_df
-                        )
+                        library_entry_lists_by_mods[mod_combination].append(lib_entry)
 
     # If no precursors for a PTM or combination were detected: create empty libraries
     for mod in mods_to_search + mod_combinations_to_search + ["unmodified"]:
@@ -104,11 +103,7 @@ def split_library_by_mods(
 
     libraries_by_mod = {}
     for mod, library_entry_list in library_entry_lists_by_mods.items():
-        library_df = (
-            pd.concat(library_entry_list, ignore_index=True)
-            if len(library_entry_list) > 0
-            else pd.DataFrame()
-        )
+        library_df = pd.DataFrame(library_entry_list)
         libraries_by_mod[mod] = library_df
 
         if logger is None:
