@@ -304,6 +304,7 @@ def main(config: Config, logger: logging.Logger):
 
     file_paths_by_mods = {}
 
+    # TODO: skip run if result already exists
     for mods, windows_for_mod in windows_by_mods.items():
         mod_combination_str = get_mod_combination_str(mods)
         logger.info("Preparing search for modification(s) %s...", mod_combination_str)
