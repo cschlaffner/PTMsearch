@@ -179,6 +179,7 @@ class ScanWindowSplitting:
         self,
         ms1_windows_df: pd.DataFrame,
         windows_with_detected_ions_df: pd.DataFrame,
+        mods_to_search: List[str],
         mod_combinations_to_search: List[FrozenSet[str]],
     ) -> Dict[str, MSExperiment]:
         """Creates an MSExperiment per modification containing all lower-energy spectra
@@ -207,10 +208,11 @@ class ScanWindowSplitting:
                 windows_df_by_mods_combinations[mod_combination] = spectra_for_mod_df
             else:
                 for mod in mod_combination:
-                    if mod not in windows_df_by_mods_single:
-                        windows_df_by_mods_single[mod] = [spectra_for_mod_df]
-                    else:
-                        windows_df_by_mods_single[mod].append(spectra_for_mod_df)
+                    if mod in mods_to_search:
+                        if mod not in windows_df_by_mods_single:
+                            windows_df_by_mods_single[mod] = [spectra_for_mod_df]
+                        else:
+                            windows_df_by_mods_single[mod].append(spectra_for_mod_df)
 
         for mod in windows_df_by_mods_single:
             windows_df_by_mods_single[mod] = pd.concat(windows_df_by_mods_single[mod])
@@ -262,6 +264,7 @@ class ScanWindowSplitting:
         ms1_and_lower_energy_windows: MSExperiment,
         ms1_and_higher_energy_windows: MSExperiment,
         detected_ions_df: pd.DataFrame,
+        mods_to_search: List[str],
         mod_combinations_to_search: Optional[List[FrozenSet[str]]] = None,
     ) -> Dict[str, MSExperiment]:
         """Expects the input MSExperiments to be originally extracted from the same
@@ -313,7 +316,10 @@ class ScanWindowSplitting:
         )
 
         windows_by_mods = self._group_windows_by_mods(
-            ms1_windows_df, windows_with_detected_ions_df, mod_combinations_to_search
+            ms1_windows_df,
+            windows_with_detected_ions_df,
+            mods_to_search,
+            mod_combinations_to_search,
         )
 
         return windows_by_mods

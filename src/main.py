@@ -7,6 +7,7 @@ from typing import Dict, FrozenSet, List, Union
 import numpy as np
 import pandas as pd
 from pyopenms import MSExperiment, MzMLFile
+
 from src.config.config import Config
 from src.diagnostic_ions.detection import DiagnosticIonDetector
 from src.diagnostic_ions.summary import (
@@ -123,8 +124,7 @@ def main(config: Config, logger: logging.Logger):
             )
         )
 
-    # TODO: add check if it exactly contains a combination to not discard mods that should only
-    # be searched in combination!
+    # TODO: also keep all PTMs that are in the combinations!
     detected_ions_df = detected_ions_df[
         detected_ions_df["letter_and_unimod_format_mod"].isin(modifications_to_search)
     ]
@@ -274,6 +274,7 @@ def main(config: Config, logger: logging.Logger):
         ms1_and_lower_energy_windows,
         ms1_and_higher_energy_windows,
         detected_ions_df,
+        modifications_to_search,
         modification_combinations,
     )
 

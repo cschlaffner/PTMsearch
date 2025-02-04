@@ -32,9 +32,27 @@ precursor_mz_1 = 1.1
 precursor_mz_2 = 20.2
 
 
+# TODO: add test for combinations containing mods that are not searched single
+
+
 @pytest.fixture
 def scan_window_splitting() -> ScanWindowSplitting:
     return ScanWindowSplitting(COLLISION_ENERGY_LOWER, COLLISION_ENERGY_HIGHER)
+
+
+@pytest.fixture
+def mods_empty() -> List[str]:
+    return []
+
+
+@pytest.fixture
+def mods_single() -> List[str]:
+    return ["K(UniMod:1)"]
+
+
+@pytest.fixture
+def mods_multiple() -> List[str]:
+    return ["K(UniMod:1)", "K(UniMod:34)", "Y(UniMod:21)"]
 
 
 @pytest.fixture
@@ -457,12 +475,14 @@ def spectra_mismatch_higher_lower_energy_by_precursor_mz() -> Tuple[MSExperiment
 def test_splitting_mismatching_higher_lower_energy_by_precursor_mz_should_fail(
     spectra_mismatch_higher_lower_energy_by_precursor_mz: Tuple[MSExperiment],
     detected_ions_df_single_mod: pd.DataFrame,
+    mods_single: List[str],
     scan_window_splitting: ScanWindowSplitting,
 ) -> None:
     with pytest.raises(AssertionError, match="precursor m/z"):
         scan_window_splitting.split_windows_by_mods(
             *spectra_mismatch_higher_lower_energy_by_precursor_mz,
-            detected_ions_df_single_mod
+            detected_ions_df_single_mod,
+            mods_single
         )
 
 
@@ -496,11 +516,14 @@ def spectra_mismatch_higher_lower_energy_by_ms1() -> Tuple[MSExperiment]:
 def test_splitting_mismatching_higher_lower_energy_by_ms1_spectra_should_fail(
     spectra_mismatch_higher_lower_energy_by_ms1: Tuple[MSExperiment],
     detected_ions_df_single_mod: pd.DataFrame,
+    mods_single: List[str],
     scan_window_splitting: ScanWindowSplitting,
 ) -> None:
     with pytest.raises(AssertionError, match="MS1"):
         scan_window_splitting.split_windows_by_mods(
-            *spectra_mismatch_higher_lower_energy_by_ms1, detected_ions_df_single_mod
+            *spectra_mismatch_higher_lower_energy_by_ms1,
+            detected_ions_df_single_mod,
+            mods_single
         )
 
 
@@ -522,17 +545,19 @@ def spectra_mismatching_ms1() -> Tuple[MSExperiment]:
 def test_splitting_mismatching_ms1_spectra_should_fail(
     spectra_mismatching_ms1: Tuple[MSExperiment],
     detected_ions_df_single_mod: pd.DataFrame,
+    mods_single: List[str],
     scan_window_splitting: ScanWindowSplitting,
 ) -> None:
     with pytest.raises(AssertionError, match="MS1"):
         scan_window_splitting.split_windows_by_mods(
-            *spectra_mismatching_ms1, detected_ions_df_single_mod
+            *spectra_mismatching_ms1, detected_ions_df_single_mod, mods_single
         )
 
 
 def test_splitting_wrong_mslevel_or_energy_spectra_should_fail(
     spectra_matching: Tuple[MSExperiment],
     detected_ions_df_single_mod: pd.DataFrame,
+    mods_single: List[str],
     scan_window_splitting: ScanWindowSplitting,
 ) -> None:
     with pytest.raises(AssertionError, match="MSLevel"):
@@ -541,6 +566,7 @@ def test_splitting_wrong_mslevel_or_energy_spectra_should_fail(
             spectra_matching[1],
             spectra_matching[2],
             detected_ions_df_single_mod,
+            mods_single,
         )
 
     with pytest.raises(AssertionError, match="collision energy"):
@@ -549,6 +575,7 @@ def test_splitting_wrong_mslevel_or_energy_spectra_should_fail(
             spectra_matching[1],
             spectra_matching[1],
             detected_ions_df_single_mod,
+            mods_single,
         )
 
     with pytest.raises(AssertionError, match="collision energy"):
@@ -557,6 +584,7 @@ def test_splitting_wrong_mslevel_or_energy_spectra_should_fail(
             spectra_matching[2],
             spectra_matching[2],
             detected_ions_df_single_mod,
+            mods_single,
         )
 
     with pytest.raises(AssertionError, match="collision energy"):
@@ -565,37 +593,46 @@ def test_splitting_wrong_mslevel_or_energy_spectra_should_fail(
             spectra_matching[2],
             spectra_matching[1],
             detected_ions_df_single_mod,
+            mods_single,
         )
 
 
 def test_splitting_no_mods(
     spectra_matching: Tuple[MSExperiment],
+    mods_empty: List[str],
     scan_window_splitting: ScanWindowSplitting,
 ) -> None:
     windows_by_mod = scan_window_splitting.split_windows_by_mods(
-        *spectra_matching, pd.DataFrame()
+        *spectra_matching, pd.DataFrame(), mods_empty
     )
     ms1_lower_energy_spectra = spectra_matching[1]
     assert windows_by_mod == {"unmodified": ms1_lower_energy_spectra}
 
 
 @pytest.mark.parametrize(
-    "spectra_matching_with_result_fixture, detected_ions_df_fixture",
+    "spectra_matching_with_result_fixture, detected_ions_df_fixture, mods_to_search_fixture",
     [
-        ("spectra_matching_with_result_single_mod", "detected_ions_df_single_mod"),
+        (
+            "spectra_matching_with_result_single_mod",
+            "detected_ions_df_single_mod",
+            "mods_single",
+        ),
         (
             "spectra_matching_with_result_multiple_mods",
             "detected_ions_df_multiple_mods",
+            "mods_multiple",
         ),
         (
             "spectra_matching_with_result_multiple_mods",
             "detected_ions_df_multiple_mods_duplicate_entries",
+            "mods_multiple",
         ),
     ],
 )
 def test_splitting_with_mods(
     spectra_matching_with_result_fixture: str,
     detected_ions_df_fixture: str,
+    mods_to_search_fixture: str,
     request: SubRequest,
     scan_window_splitting: ScanWindowSplitting,
 ) -> None:
@@ -603,9 +640,10 @@ def test_splitting_with_mods(
         spectra_matching_with_result_fixture
     )
     detected_ions_df = request.getfixturevalue(detected_ions_df_fixture)
+    mods_to_search = request.getfixturevalue(mods_to_search_fixture)
 
     windows_by_mod = scan_window_splitting.split_windows_by_mods(
-        *spectra_matching_with_result[:-1], detected_ions_df
+        *spectra_matching_with_result[:-1], detected_ions_df, mods_to_search
     )
     expected_result = spectra_matching_with_result[-1]
 
@@ -642,6 +680,7 @@ def test_splitting_with_mods_combinations(
     detected_ions_df_fixture: str,
     mod_combinations_fixture: str,
     request: SubRequest,
+    mods_multiple: List[str],
     scan_window_splitting: ScanWindowSplitting,
 ) -> None:
     spectra_matching_with_result = request.getfixturevalue(
@@ -653,6 +692,7 @@ def test_splitting_with_mods_combinations(
     windows_by_mod = scan_window_splitting.split_windows_by_mods(
         *spectra_matching_with_result[:-1],
         detected_ions_df,
+        mods_multiple,
         mod_combinations_to_search=mod_combinations
     )
     expected_result = spectra_matching_with_result[-1]
