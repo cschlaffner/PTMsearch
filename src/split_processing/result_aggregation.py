@@ -208,7 +208,10 @@ class ResultAggregation:
     def plot_densities(
         self, result_path, targets_df, decoys_df, fig_name, normalized=False
     ):
-        """Density plots for the c-score distributions."""
+        """Density plots for the c-score distributions. Density plotting
+        only succeeds when the data has at least 2 elements."""
+        if len(targets_df) <= 1 or len(decoys_df) <= 1:
+            return
 
         if normalized:
             decoy_cscores = decoys_df[self.c_score_column]
@@ -229,6 +232,7 @@ class ResultAggregation:
         ):
             plt.xlim((-0.25, 1.5))
             plt.xticks(np.arange(0, 1.26, 0.25))
+
         decoy_cscores.plot.kde(label="Decoys")
         target_cscores.plot.kde(label="Targets")
         plt.xlabel("CScore")
@@ -254,48 +258,45 @@ class ResultAggregation:
             all_decoys,
         ) = self._get_mods_unmods_all_from_splits(file_paths_by_mods)
 
-        assert len(all_targets) > 0 and len(all_decoys) > 0, (
-            "No targets and/or no decoys were listed in the results even before FDR filtering. "
-            "Looks like something went wrong regarding configurations or data for this run."
+        assert len(all_targets) > 1 and len(all_decoys) > 1, (
+            "At most 1 targets and/or at most 1 decoys were listed in the "
+            "results even before FDR filtering. Looks like something went "
+            "wrong regarding configurations or data for this run."
         )
 
-        if len(mods_targets) > 0 and len(mods_decoys) > 0:
-            self.plot_densities(
-                result_path,
-                mods_targets,
-                mods_decoys,
-                "modification_splits",
-                normalized=False,
-            )
-        if len(unmods_targets) > 0 and len(unmods_decoys) > 0:
-            self.plot_densities(
-                result_path,
-                unmods_targets,
-                unmods_decoys,
-                "unmodified_split",
-                normalized=False,
-            )
+        self.plot_densities(
+            result_path,
+            mods_targets,
+            mods_decoys,
+            "modification_splits",
+            normalized=False,
+        )
+        self.plot_densities(
+            result_path,
+            unmods_targets,
+            unmods_decoys,
+            "unmodified_split",
+            normalized=False,
+        )
         self.plot_densities(
             result_path, all_targets, all_decoys, "all_splits", normalized=False
         )
 
         if self.normalize_cscores:
-            if len(mods_targets) > 0 and len(mods_decoys) > 0:
-                self.plot_densities(
-                    result_path,
-                    mods_targets,
-                    mods_decoys,
-                    "modification_splits",
-                    normalized=True,
-                )
-            if len(unmods_targets) > 0 and len(unmods_decoys) > 0:
-                self.plot_densities(
-                    result_path,
-                    unmods_targets,
-                    unmods_decoys,
-                    "unmodified_split",
-                    normalized=True,
-                )
+            self.plot_densities(
+                result_path,
+                mods_targets,
+                mods_decoys,
+                "modification_splits",
+                normalized=True,
+            )
+            self.plot_densities(
+                result_path,
+                unmods_targets,
+                unmods_decoys,
+                "unmodified_split",
+                normalized=True,
+            )
             self.plot_densities(
                 result_path, all_targets, all_decoys, "all_splits", normalized=True
             )
