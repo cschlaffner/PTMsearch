@@ -60,22 +60,17 @@ def split_library_by_mods(
         if additional_mods_to_search != []:
             mods = [mod for mod in mods if mod not in additional_mods_to_search]
 
-        # precursors containing mods that should not be searched are discarded
-        # TODO: adapt/remove to include mods that are in combination but not in search list
-        if np.any([mod not in mods_to_search for mod in mods]):
-            continue
-
         if len(mods) == 0:
             mods = ["unmodified"]
 
         # Single-mod searches
         if len(mods) == 1:
-            # TODO: only add mods that are in mods to search
             mod = mods[0]
-            if mod not in library_entry_lists_by_mods:
-                library_entry_lists_by_mods[mod] = [lib_entry]
-            else:
-                library_entry_lists_by_mods[mod].append(lib_entry)
+            if mod in mods_to_search or mod == "unmodified":
+                if mod not in library_entry_lists_by_mods:
+                    library_entry_lists_by_mods[mod] = [lib_entry]
+                else:
+                    library_entry_lists_by_mods[mod].append(lib_entry)
 
         # Mod combination searches
         if mod_combinations_to_search is not None:
