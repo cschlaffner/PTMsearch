@@ -30,6 +30,11 @@ def mods_combinations() -> Tuple[List[str], List[FrozenSet[str]], List[str]]:
 
 
 @pytest.fixture
+def mods_combinations_reduced() -> Tuple[List[str], List[FrozenSet[str]], List[str]]:
+    return [k_1, y_21], [k_1_y_21, k_3_y_21, k_1_y_21_k_34], []
+
+
+@pytest.fixture
 def mods_combinations_additional() -> Tuple[List[str], List[FrozenSet[str]], List[str]]:
     return (
         [k_1, y_21, k_34],
@@ -178,6 +183,18 @@ def libraries_by_mods_combinations() -> Dict[str, pd.DataFrame]:
 
 
 @pytest.fixture
+def libraries_by_mods_combinations_reduced() -> Dict[str, pd.DataFrame]:
+    return {
+        k_1: library_k_1(),
+        y_21: library_y_21(),
+        k_1_y_21: library_k_1_y_21(),
+        k_3_y_21: library_k_3_y_21(),
+        k_1_y_21_k_34: library_k_1_y_21_k_34(),
+        "unmodified": library_unmod(),
+    }
+
+
+@pytest.fixture
 def libraries_by_mods_combinations_additional() -> Dict[str, pd.DataFrame]:
     return {
         k_1: library_k_1_m_35(),
@@ -195,6 +212,7 @@ def libraries_by_mods_combinations_additional() -> Dict[str, pd.DataFrame]:
     [
         ("mods_single", "libraries_by_mods_single"),
         ("mods_combinations", "libraries_by_mods_combinations"),
+        ("mods_combinations_reduced", "libraries_by_mods_combinations_reduced"),
         ("mods_combinations_additional", "libraries_by_mods_combinations_additional"),
     ],
 )

@@ -32,9 +32,6 @@ precursor_mz_1 = 1.1
 precursor_mz_2 = 20.2
 
 
-# TODO: add test for combinations containing mods that are not searched single
-
-
 @pytest.fixture
 def scan_window_splitting() -> ScanWindowSplitting:
     return ScanWindowSplitting(COLLISION_ENERGY_LOWER, COLLISION_ENERGY_HIGHER)
@@ -149,11 +146,16 @@ def detected_ions_df_single_mod() -> pd.DataFrame:
         {
             "spectrum_id": [
                 higher_energy_spectrum_1_native_id,
+                higher_energy_spectrum_3_native_id,
                 higher_energy_spectrum_4_native_id,
             ],
-            "amino_acid": ["Lysine", "Lysine"],
-            "mod_name": ["Acetyl", "Acetyl"],
-            "letter_and_unimod_format_mod": ["K(UniMod:1)", "K(UniMod:1)"],
+            "amino_acid": ["Lysine", "Lysine", "Lysine"],
+            "mod_name": ["Acetyl", "Acetyl", "Acetyl"],
+            "letter_and_unimod_format_mod": [
+                "K(UniMod:1)",
+                "K(UniMod:1)",
+                "K(UniMod:1)",
+            ],
         }
     )
 
@@ -168,8 +170,6 @@ def spectra_matching_with_result_single_mod() -> (
     unmod_spectra = [
         ms1_and_lower_energy_spectra[0],
         ms1_and_lower_energy_spectra[2],
-        ms1_and_lower_energy_spectra[3],
-        ms1_and_lower_energy_spectra[4],
         ms1_and_lower_energy_spectra[6],
         ms1_and_lower_energy_spectra[7],
     ]
@@ -180,6 +180,7 @@ def spectra_matching_with_result_single_mod() -> (
         ms1_and_lower_energy_spectra[0],
         ms1_and_lower_energy_spectra[1],
         ms1_and_lower_energy_spectra[3],
+        ms1_and_lower_energy_spectra[4],
         ms1_and_lower_energy_spectra[5],
     ]
     mod_exp.setSpectra(mod_spectra)
@@ -212,7 +213,7 @@ def detected_ions_df_multiple_mods() -> pd.DataFrame:
                 "Lysine",
                 "Lysine",
                 "Tyrosine",
-                "Lysine",
+                "Tyrosine",
             ],
             "mod_name": [
                 "Acetyl",
@@ -221,7 +222,7 @@ def detected_ions_df_multiple_mods() -> pd.DataFrame:
                 "Acetyl",
                 "Methyl",
                 "Phospho",
-                "Acetyl",
+                "Phospho",
             ],
             "letter_and_unimod_format_mod": [
                 "K(UniMod:1)",
@@ -230,7 +231,7 @@ def detected_ions_df_multiple_mods() -> pd.DataFrame:
                 "K(UniMod:1)",
                 "K(UniMod:34)",
                 "Y(UniMod:21)",
-                "K(UniMod:1)",
+                "Y(UniMod:21)",
             ],
         }
     )
@@ -262,7 +263,7 @@ def detected_ions_df_multiple_mods_duplicate_entries() -> pd.DataFrame:
                 "Lysine",
                 "Lysine",
                 "Tyrosine",
-                "Lysine",
+                "Tyrosine",
             ],
             "mod_name": [
                 "Acetyl",
@@ -274,7 +275,7 @@ def detected_ions_df_multiple_mods_duplicate_entries() -> pd.DataFrame:
                 "Methyl",
                 "Methyl",
                 "Phospho",
-                "Acetyl",
+                "Phospho",
             ],
             "letter_and_unimod_format_mod": [
                 "K(UniMod:1)",
@@ -286,7 +287,7 @@ def detected_ions_df_multiple_mods_duplicate_entries() -> pd.DataFrame:
                 "K(UniMod:34)",
                 "K(UniMod:34)",
                 "Y(UniMod:21)",
-                "K(UniMod:1)",
+                "Y(UniMod:21)",
             ],
         }
     )
@@ -312,8 +313,6 @@ def spectra_matching_with_result_multiple_mods() -> (
         ms1_and_lower_energy_spectra[3],
         ms1_and_lower_energy_spectra[4],
         ms1_and_lower_energy_spectra[5],
-        ms1_and_lower_energy_spectra[6],
-        ms1_and_lower_energy_spectra[7],
     ]
     mod_1_exp.setSpectra(mod_1_spectra)
 
@@ -329,6 +328,8 @@ def spectra_matching_with_result_multiple_mods() -> (
         ms1_and_lower_energy_spectra[3],
         ms1_and_lower_energy_spectra[4],
         ms1_and_lower_energy_spectra[5],
+        ms1_and_lower_energy_spectra[6],
+        ms1_and_lower_energy_spectra[7],
     ]
     mod_3_exp.setSpectra(mod_3_spectra)
 
@@ -364,8 +365,6 @@ def spectra_matching_with_result_multiple_mods_combinations_and_single() -> (
         ms1_and_lower_energy_spectra[1],
         ms1_and_lower_energy_spectra[3],
         ms1_and_lower_energy_spectra[4],
-        ms1_and_lower_energy_spectra[6],
-        ms1_and_lower_energy_spectra[7],
     ]
     mod_1_exp.setSpectra(mod_1_spectra)
 
@@ -373,6 +372,8 @@ def spectra_matching_with_result_multiple_mods_combinations_and_single() -> (
     mod_2_spectra = [
         ms1_and_lower_energy_spectra[3],
         ms1_and_lower_energy_spectra[4],
+        ms1_and_lower_energy_spectra[6],
+        ms1_and_lower_energy_spectra[7],
     ]
     mod_2_exp.setSpectra(mod_2_spectra)
 
@@ -397,6 +398,49 @@ def spectra_matching_with_result_multiple_mods_combinations_and_single() -> (
 
 
 @pytest.fixture
+def spectra_matching_with_result_multiple_mods_combinations_and_single_reduced() -> (
+    Tuple[Union[MSExperiment, Dict[str, pd.DataFrame]]]
+):
+    exp_ms1_and_lower_energy_spectra = spectra_ms1_and_lower_energy_matching()
+    ms1_and_lower_energy_spectra = exp_ms1_and_lower_energy_spectra.getSpectra()
+    unmod_exp = MSExperiment()
+    unmod_spectra = [
+        ms1_and_lower_energy_spectra[0],
+        ms1_and_lower_energy_spectra[2],
+        ms1_and_lower_energy_spectra[6],
+        ms1_and_lower_energy_spectra[7],
+    ]
+    unmod_exp.setSpectra(unmod_spectra)
+
+    mod_1_exp = MSExperiment()
+    mod_1_spectra = [  # 1, 3, 5
+        ms1_and_lower_energy_spectra[0],
+        ms1_and_lower_energy_spectra[1],
+        ms1_and_lower_energy_spectra[3],
+        ms1_and_lower_energy_spectra[4],
+    ]
+    mod_1_exp.setSpectra(mod_1_spectra)
+
+    mod_2_exp = MSExperiment()  # 4
+    mod_2_spectra = [
+        ms1_and_lower_energy_spectra[3],
+        ms1_and_lower_energy_spectra[5],
+    ]
+    mod_2_exp.setSpectra(mod_2_spectra)
+
+    return (
+        spectra_ms1(),
+        exp_ms1_and_lower_energy_spectra,
+        spectra_ms1_and_higher_energy_matching(),
+        {
+            "unmodified": unmod_exp,
+            "K(UniMod:1)": mod_1_exp,
+            frozenset({"K(UniMod:1)", "K(UniMod:34)", "Y(UniMod:21)"}): mod_2_exp,
+        },
+    )
+
+
+@pytest.fixture
 def spectra_matching_with_result_multiple_mods_combinations() -> (
     Tuple[Union[MSExperiment, Dict[str, pd.DataFrame]]]
 ):
@@ -413,24 +457,29 @@ def spectra_matching_with_result_multiple_mods_combinations() -> (
     mod_1_spectra = [
         ms1_and_lower_energy_spectra[0],
         ms1_and_lower_energy_spectra[1],
-        ms1_and_lower_energy_spectra[6],
-        ms1_and_lower_energy_spectra[7],
     ]
     mod_1_exp.setSpectra(mod_1_spectra)
 
     mod_2_exp = MSExperiment()
     mod_2_spectra = [
-        ms1_and_lower_energy_spectra[3],
-        ms1_and_lower_energy_spectra[4],
+        ms1_and_lower_energy_spectra[6],
+        ms1_and_lower_energy_spectra[7],
     ]
     mod_2_exp.setSpectra(mod_2_spectra)
 
     mod_3_exp = MSExperiment()
     mod_3_spectra = [
         ms1_and_lower_energy_spectra[3],
-        ms1_and_lower_energy_spectra[5],
+        ms1_and_lower_energy_spectra[4],
     ]
     mod_3_exp.setSpectra(mod_3_spectra)
+
+    mod_4_exp = MSExperiment()
+    mod_4_spectra = [
+        ms1_and_lower_energy_spectra[3],
+        ms1_and_lower_energy_spectra[5],
+    ]
+    mod_4_exp.setSpectra(mod_4_spectra)
 
     return (
         spectra_ms1(),
@@ -439,8 +488,9 @@ def spectra_matching_with_result_multiple_mods_combinations() -> (
         {
             "unmodified": unmod_exp,
             "K(UniMod:1)": mod_1_exp,
-            frozenset({"K(UniMod:1)", "Y(UniMod:21)"}): mod_2_exp,
-            frozenset({"K(UniMod:1)", "K(UniMod:34)", "Y(UniMod:21)"}): mod_3_exp,
+            "Y(UniMod:21)": mod_2_exp,
+            frozenset({"K(UniMod:1)", "Y(UniMod:21)"}): mod_3_exp,
+            frozenset({"K(UniMod:1)", "K(UniMod:34)", "Y(UniMod:21)"}): mod_4_exp,
         },
     )
 
@@ -618,6 +668,11 @@ def test_splitting_no_mods(
             "mods_single",
         ),
         (
+            "spectra_matching_with_result_single_mod",
+            "detected_ions_df_multiple_mods",
+            "mods_single",
+        ),
+        (
             "spectra_matching_with_result_multiple_mods",
             "detected_ions_df_multiple_mods",
             "mods_multiple",
@@ -651,26 +706,36 @@ def test_splitting_with_mods(
 
 
 @pytest.mark.parametrize(
-    "spectra_matching_with_result_fixture, detected_ions_df_fixture, mod_combinations_fixture",
+    "spectra_matching_with_result_fixture, detected_ions_df_fixture, mods_to_search_fixture, mod_combinations_fixture",
     [
         (
             "spectra_matching_with_result_multiple_mods_combinations_and_single",
             "detected_ions_df_multiple_mods",
+            "mods_multiple",
+            "mod_combinations_some",
+        ),
+        (
+            "spectra_matching_with_result_multiple_mods_combinations_and_single_reduced",
+            "detected_ions_df_multiple_mods",
+            "mods_single",
             "mod_combinations_some",
         ),
         (
             "spectra_matching_with_result_multiple_mods_combinations_and_single",
             "detected_ions_df_multiple_mods_duplicate_entries",
+            "mods_multiple",
             "mod_combinations_some",
         ),
         (
             "spectra_matching_with_result_multiple_mods_combinations",
             "detected_ions_df_multiple_mods",
+            "mods_multiple",
             "mod_combinations_all",
         ),
         (
             "spectra_matching_with_result_multiple_mods_combinations",
             "detected_ions_df_multiple_mods_duplicate_entries",
+            "mods_multiple",
             "mod_combinations_all",
         ),
     ],
@@ -679,8 +744,8 @@ def test_splitting_with_mods_combinations(
     spectra_matching_with_result_fixture: str,
     detected_ions_df_fixture: str,
     mod_combinations_fixture: str,
+    mods_to_search_fixture: str,
     request: SubRequest,
-    mods_multiple: List[str],
     scan_window_splitting: ScanWindowSplitting,
 ) -> None:
     spectra_matching_with_result = request.getfixturevalue(
@@ -688,11 +753,12 @@ def test_splitting_with_mods_combinations(
     )
     detected_ions_df = request.getfixturevalue(detected_ions_df_fixture)
     mod_combinations = request.getfixturevalue(mod_combinations_fixture)
+    mods_to_search = request.getfixturevalue(mods_to_search_fixture)
 
     windows_by_mod = scan_window_splitting.split_windows_by_mods(
         *spectra_matching_with_result[:-1],
         detected_ions_df,
-        mods_multiple,
+        mods_to_search,
         mod_combinations_to_search=mod_combinations
     )
     expected_result = spectra_matching_with_result[-1]

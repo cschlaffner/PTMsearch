@@ -201,11 +201,15 @@ class ScanWindowSplitting:
             mod_combination,
             spectra_for_mod_df,
         ) in windows_with_detected_ions_df.groupby("letter_and_unimod_format_mod"):
-            if (
-                mod_combination == "unmodified"
-                or mod_combination in mod_combinations_to_search
-            ):
+            if mod_combination in mod_combinations_to_search:
                 windows_df_by_mods_combinations[mod_combination] = spectra_for_mod_df
+            elif mod_combination == "unmodified" or not np.any(
+                [mod in mods_to_search for mod in mod_combination]
+            ):
+                if "unmodified" not in windows_df_by_mods_single:
+                    windows_df_by_mods_single["unmodified"] = [spectra_for_mod_df]
+                else:
+                    windows_df_by_mods_single["unmodified"].append(spectra_for_mod_df)
             else:
                 for mod in mod_combination:
                     if mod in mods_to_search:

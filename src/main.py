@@ -124,13 +124,19 @@ def main(config: Config, logger: logging.Logger):
             )
         )
 
-    # TODO: also keep all PTMs that are in the combinations!
+    # TODO: test it
+    logger.info(
+        "Keeping ions for mods %s.",
+        set(modifications_to_search).union(set.union(*modification_combinations)),
+    )
     detected_ions_df = detected_ions_df[
-        detected_ions_df["letter_and_unimod_format_mod"].isin(modifications_to_search)
+        detected_ions_df["letter_and_unimod_format_mod"].isin(
+            set(modifications_to_search).union(set.union(*modification_combinations))
+        )
     ]
 
     logger.info(
-        "Considering mods %s and combinations %s for window splitting and spectral library preparation.",
+        "Considering single mods %s and combinations %s for window splitting and spectral library preparation.",
         modifications_to_search,
         [
             get_mod_combination_str(mod_combination)
