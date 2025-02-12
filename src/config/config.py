@@ -83,13 +83,15 @@ class Config:
     If you provide your own ions file, make sure that it contains only ions for PTMs that
     are listed in UniMod. Otherwise, it's not compatible with prediction and search with DIA-NN."""
 
-    spectral_library_files_by_mod: Dict[Union[str, FrozenSet[str]], str] = field(
+    spectral_library_files_by_mod: Dict[Union[str, FrozenSet], str] = field(
         default_factory=lambda: {}
     )
     """If you already have spectral libraries: The spectral library
     for each PTM. Should contain precursors for the PTM
     and also the unmodified ones. Those files will not be validated/checked
-    for correct PTMs."""
+    for correct PTMs.
+    If a library is for a PTM combination split, the combination should be
+    specified as vertical-bar-separated string, e.g. "K(UniMod:1)|P(UniMod:35)" """
 
     spectral_library_for_filtering_path: str = ""
     """If you already have one spectral library containing precursors
@@ -149,23 +151,50 @@ class Config:
     @classmethod
     def from_path(cls, config_path: Path):
         with open(config_path, "r") as config_file:
-            config_json = json.load(config_file)
+            config_dict = json.load(config_file)
+
+            # JSON does not allow serialization of frozensets
             mods_combinations = [
                 frozenset(combination)
-                for combination in config_json["modification_combinations"]
+                for combination in config_dict["modification_combinations"]
             ]
-            config_json["modification_combinations"] = mods_combinations
-            # TODO: also handle library dict keys
-        return cls(**config_json)
+            config_dict["modification_combinations"] = mods_combinations
+
+            if (
+                "spectral_library_files_by_mod" in config_dict
+                and len(config_dict["spectral_library_files_by_mod"]) > 0
+            ):
+                library_files_by_mod_with_combinations = {}
+                for mod, library_path in config_dict[
+                    "spectral_library_files_by_mod"
+                ].items():
+                    # handle combination splits
+                    mod_key = frozenset(mod.split("|")) if "|" in mod else mod
+                    library_files_by_mod_with_combinations[mod_key] = library_path
+                config_dict["spectral_library_files_by_mod"] = (
+                    library_files_by_mod_with_combinations
+                )
+
+        return cls(**config_dict)
 
     def save(self, config_path: Path) -> None:
         config_dict = asdict(self)
-        # replacing frozenset with list for serialization
+        # JSON does not allow serialization of frozensets
         config_dict["modification_combinations"] = [
             list(combination)
             for combination in config_dict["modification_combinations"]
         ]
-        # TODO: also handle library dict keys
+
+        if config_dict["spectral_library_files_by_mod"] != {}:
+            library_files_by_mod_with_combinations = {}
+            for mod, library_path in config_dict[
+                "spectral_library_files_by_mod"
+            ].items():
+                mod_key = "|".join(mod) if isinstance(mod, FrozenSet) else mod
+                library_files_by_mod_with_combinations[mod_key] = library_path
+            config_dict["spectral_library_files_by_mod"] = (
+                library_files_by_mod_with_combinations
+            )
 
         with open(config_path, "w") as config_file:
             json.dump(config_dict, config_file)

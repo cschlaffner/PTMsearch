@@ -2,39 +2,39 @@ import logging
 import tkinter as tk
 from pathlib import Path
 from tkinter import font as tkFont
-from typing import Any, Dict, FrozenSet, List
+from typing import Any, Dict, FrozenSet, List, Union
 
 from src.config.config import Config
 from src.diagnostic_ions.detection import MassToleranceUnit
 from src.main import main
 
 
-def get_ptm_unimod(ptm_input: str) -> str:
-    amino_acid = ptm_input[0]
-    unimod_id = ptm_input[1:]
+def get_mod_unimod(mod_input: str) -> str:
+    amino_acid = mod_input[0]
+    unimod_id = mod_input[1:]
     return f"{amino_acid}(UniMod:{unimod_id})"
 
 
-def get_ptm_list(ptm_list_input: str) -> List[str]:
-    if ptm_list_input == "":
+def get_mod_list(mod_list_input: str) -> List[str]:
+    if mod_list_input == "":
         return []
-    ptm_list = ptm_list_input.split(";")
-    return [get_ptm_unimod(mod) for mod in ptm_list]
+    return [get_mod_unimod(mod) for mod in mod_list_input.split(";")]
 
 
-def get_ptm_combinations_list(ptm_combinations_list_input: str) -> List[FrozenSet[str]]:
-    if ptm_combinations_list_input == "":
+def get_mod_combinations_list(mod_combinations_list_input: str) -> List[FrozenSet[str]]:
+    if mod_combinations_list_input == "":
         return []
-    ptm_combinations_list = ptm_combinations_list_input.split("|")
-    ptm_combinations_sets_list = [
-        frozenset(get_ptm_list(combination)) for combination in ptm_combinations_list
-    ]
-    return ptm_combinations_sets_list
+    mod_combinations_list = mod_combinations_list_input.split(";")
+    mod_combinations_sets_list = []
+    for combination in mod_combinations_list:
+        mod_list = [get_mod_unimod(mod) for mod in combination.split("|")]
+        mod_combinations_sets_list.append(frozenset(mod_list))
+    return mod_combinations_sets_list
 
 
 def get_dictionary(dict_input: str) -> Dict[str, Any]:
     if dict_input == "":
-        return []
+        return {}
 
     def try_to_number(value):
         try:
@@ -53,7 +53,22 @@ def get_dictionary(dict_input: str) -> Dict[str, Any]:
     return dict_config
 
 
-# TODO: handle splits for PTM combinations
+def get_dictionary_libraries_by_mod(
+    dict_input: str,
+) -> Dict[Union[str, FrozenSet], str]:
+    if dict_input == "":
+        return {}
+
+    libraries_dict = get_dictionary(dict_input)
+    libraries_dict_corrected_keys = {}
+    for mod_string, library_path in libraries_dict.items():
+        mod_key = (
+            frozenset([get_mod_unimod(mod) for mod in mod_string.split("|")])
+            if "|" in mod_string
+            else get_mod_unimod(mod_string)
+        )
+        libraries_dict_corrected_keys[mod_key] = library_path
+    return libraries_dict_corrected_keys
 
 
 def create_config_json() -> Config:
@@ -62,11 +77,11 @@ def create_config_json() -> Config:
         mzml_file=mzml_file.get(),
         dia_nn_path=dia_nn_path.get(),
         library_free=library_free.get(),
-        modifications_to_search=get_ptm_list(modifications_to_search.get()),
-        modification_combinations=get_ptm_combinations_list(
+        modifications_to_search=get_mod_list(modifications_to_search.get()),
+        modification_combinations=get_mod_combinations_list(
             modification_combinations.get()
         ),
-        modifications_additional=get_ptm_list(modifications_additional.get()),
+        modifications_additional=get_mod_list(modifications_additional.get()),
         lower_collision_energy=float(lower_collision_energy.get()),
         higher_collision_energy=float(higher_collision_energy.get()),
         diagnostic_ions_mass_tolerance=float(diagnostic_ions_mass_tolerance.get()),
@@ -74,7 +89,7 @@ def create_config_json() -> Config:
         snr_threshold=float(snr_threshold.get()),
         fdr_threshold=float(fdr_threshold.get()),
         known_diagnostic_ions_file=known_diagnostic_ions_file.get(),
-        spectral_library_files_by_mod=get_dictionary(
+        spectral_library_files_by_mod=get_dictionary_libraries_by_mod(
             spectral_library_files_by_mod.get()
         ),
         spectral_library_for_filtering_path=spectral_library_for_filtering_path.get(),
