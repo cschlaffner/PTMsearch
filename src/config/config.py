@@ -1,5 +1,5 @@
 import json
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Dict, FrozenSet, List, Optional, Union
 
@@ -155,4 +155,17 @@ class Config:
                 for combination in config_json["modification_combinations"]
             ]
             config_json["modification_combinations"] = mods_combinations
+            # TODO: also handle library dict keys
         return cls(**config_json)
+
+    def save(self, config_path: Path) -> None:
+        config_dict = asdict(self)
+        # replacing frozenset with list for serialization
+        config_dict["modification_combinations"] = [
+            list(combination)
+            for combination in config_dict["modification_combinations"]
+        ]
+        # TODO: also handle library dict keys
+
+        with open(config_path, "w") as config_file:
+            json.dump(config_dict, config_file)
