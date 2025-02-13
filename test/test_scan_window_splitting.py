@@ -10,12 +10,8 @@ from typing import Dict, FrozenSet, List, Tuple, Union
 import pandas as pd
 import pytest
 from _pytest.fixtures import SubRequest
-from pyopenms import MSExperiment, MSSpectrum
+from pyopenms import MSExperiment
 
-from src.mzml_processing.utils import (
-    get_ms2_spectrum_collision_energy,
-    get_ms2_spectrum_precursors,
-)
 from src.split_processing.scan_window_splitting import ScanWindowSplitting
 
 ms1_spectrum_1_native_id = "ms1_id_1"
