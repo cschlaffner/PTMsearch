@@ -114,7 +114,6 @@ def split_library_by_mods(
         if mod == "unmodified":
             continue
 
-        # TODO: refine this so that additional mods are not counted
         mod_indication_string = "UniMod" if has_unimod_format else "["
         num_mods_in_lib = (
             library_df["ModifiedPeptide"].str.contains(mod_indication_string).sum()

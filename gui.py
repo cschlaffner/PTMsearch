@@ -51,11 +51,11 @@ def create_config_json() -> Config:
 
 def create_config_and_run() -> None:
     config = create_config_json()
+    result_path = Path(config.result_dir)
+    result_path.mkdir(exist_ok=True)
 
     logger = logging.getLogger(__name__)
-    logging.basicConfig(
-        filename=Path(config.result_dir) / "log.txt", level=logging.INFO
-    )
+    logging.basicConfig(filename=result_path / "log.txt", level=logging.INFO)
 
     try:
         main(config, logger)
@@ -305,9 +305,6 @@ normalize_cscores = tk.BooleanVar()
 tk.Checkbutton(
     root, text="Normalize c-scores", variable=normalize_cscores, font=arial
 ).grid(row=row_search_aggregation + 3, sticky=tk.W)
-
-"""
-Buttons: generate config JSON, generate config JSON and run"""
 
 # -------------------------- Buttons -------------------
 row_buttons = 31
