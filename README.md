@@ -37,21 +37,13 @@ In the GUI, the following config parameters have to be provided (lists should be
     - **Filtering: spectral library path**: A single library to be filtered and segmented into split-wise libraries for the respective PTMs. It must be a TSV file containing PTMs in the same format as the ones in DIA-NN-predicted libraries, e.g. "Y(UniMod:21)", and must be compatible with DIA-NN.
     - **Library-free mode**: If selected, the spectral library for each split is predicted by DIA-NN from a sequence database. The caveat: The DIA-NN predictor [is only trained for some PTMs](https://github.com/vdemichev/DiaNN?tab=readme-ov-file#creation-of-spectral-libraries), so prediction quality for other PTMs is questionable.
     - **Library-free: database path**: Path to the sequence database for spectral library prediction in library-free mode.
-    - **Library-free: DIA-NN prediction params**: Additional parameters for DIA-NN for library prediction. Specify as semicolon-separatesd list of entries `parameter:value` (or `parameter:` for parameters without value), e.g., `cut:K*,R*;threads:8`. The mandatory parameters (`gen-spec-lib`, `fasta-search`, `predictor`, `out-lib`, `fasta`, `strip-unknown-mods`) are already added automatically.
-- Input for spectral library can be one of the following:
-    - `database_for_library_prediction`: a sequence database for split-wise automatic spectral library prediction with DIA-NN.  When using this option, `library_free` must be set to true in the config.
-    - `spectral_library_files_by_mod`: 
- - Input for PTMs to search for:
-     - single PTMs: `modifications_to_search`
-     - PTM combinations: `modification_combinations`
-     - possible additional PTMs that never or rarely emit immonium ions and should be searched for in every split: `modifications_additional`
-     - PTMs must be specified in the same format as in DIA-NN-predicted libraries (e.g. "Y(UniMod:21)"). See example configs in the `tooling_configs` folder for how exactly the specification structure for single PTMs and combinations looks like. 
-     - If you do not want to specify any of those, specify them as empty list. If `modifications_to_search` is empty, PTMs and combinations are selected automatically based on detected immonium ions. The automatic detection can be configured with `detection_count_percentile` and `detection_count_min`.
+    - **Library-free: DIA-NN prediction params**: Additional parameters for DIA-NN for library prediction. Specify as semicolon-separated list of entries `parameter:value` (or `parameter:` for parameters without value), e.g., `cut:K*,R*;threads:8`. The mandatory parameters (`gen-spec-lib`, `fasta-search`, `predictor`, `out-lib`, `fasta`, `strip-unknown-mods`) are already added automatically.
+-  **DIA-NN search and aggregation config**:
+    - **DIA-NN search params**: Additional parameters for DIA-NN search. Specify as semicolon-separated list of entries `parameter:value` (or `parameter:` for parameters without value), e.g., `window:0;no-lib-filter:;threads:8`. The mandatory parameters (`f`, `lib`, `out`) and further parameters (`qvalue` (set to 1 because aggregated q-value calculation is conducted afterwards), `decoy-report`, `no-prot-inf`) are already added automatically.
+    - **FDR threshold**: The FDR at which the aggregated output report should be filtered.
+    - **Normalize c-scores**: If selected, c-scores are normalized to the 0-1 range for each split to migitate artifacts that are a result of the search with DIA-NN being conducted split-wise.
 
-
-All input paths, settings etc. have to be provided via a JSON file. `src/config/config.py` lists all configurable parameters with their documentation. Following is an overview over important required inputs for the config:
-
-- All other required inputs are listed in `src/config/config.py`.
+For manually creating the config JSON for command-line mode, have a look at `src/config/config.py` and `gui.py` for the corresponding names and formatting of the configurable parameters.
 
 So far, this software has only been run on Linux. Although it should probably also run on Windows if the file paths are adapted accordingly, but that has not been tested yet. Some fuctionality has not been optimized yet, e.g., DIA-NN runs are conducted sequentially and not in parallel. Currently, only precursor identification is included, but no protein inference after aggregation. The list of immonium ions that is used during detection, stored in  It can be edited or an own provided file in the same format can be used.
 
