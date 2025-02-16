@@ -70,8 +70,8 @@ class ResultAggregation:
 
         for i in range(len(split_borders) - 1):
             current_cscores = cscores[split_borders[i] : split_borders[i + 1]]
-            targets_passing = targets_cscores > current_cscores
-            decoys_passing = decoys_cscores > current_cscores
+            targets_passing = targets_cscores >= current_cscores
+            decoys_passing = decoys_cscores >= current_cscores
             q_values.append(decoys_passing.sum(axis=1) / targets_passing.sum(axis=1))
 
         return np.concatenate(q_values)
