@@ -10,9 +10,9 @@ For running in command-line mode, create a JSON configuration for your experimen
 
 To use the GUI, run `python gui.py` in the terminal and add the config parameters in the GUI. A config JSON will be automatically created when clicking the respective button.
 
-## Configuration
+![](https://github.com/cschlaffner/PTMsearch/blob/main/ScreenshotGUI.png)
 
-TODO: add GUI screenshot
+## Configuration
 
 In the GUI, the following config parameters have to be provided (lists should be specified without whitespaces):
 - **Experiment name**: Name of the experiment that will be used for creating the config.
