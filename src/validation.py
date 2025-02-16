@@ -5,7 +5,12 @@ from typing import Dict, FrozenSet, List, Union
 import pandas as pd
 from pyopenms import MSExperiment
 
-from src.diagnostic_ions.utils import modifications_db, residue_db
+from src.diagnostic_ions.summary import DIA_NN_MAX_NUM_MODS
+from src.diagnostic_ions.utils import (
+    get_mod_combination_str,
+    modifications_db,
+    residue_db,
+)
 
 
 def validate_number_lower_higher_energy_windows(
@@ -37,14 +42,25 @@ def validate_modifications(modifications: Union[List[str], FrozenSet[str]]) -> N
 
 
 def validate_modification_combinations(
-    modification_combinations: List[FrozenSet[str]],
+    modification_combinations: List[FrozenSet[str]], num_additional_modifications: int
 ) -> None:
     for combination in modification_combinations:
-        assert not len(combination) > 1, (
-            f"Combination {combination} contains only a single PTM and "
+        assert len(combination) > 1, (
+            f"Combination {get_mod_combination_str(combination)} contains only a single PTM and "
             "therefore has to be listed in modifications_to_search."
         )
         validate_modifications(combination)
+
+        additional_modifications_message = (
+            f"along with {num_additional_modifications} additional PTMs"
+            if num_additional_modifications > 0
+            else ""
+        )
+        assert len(combination) + num_additional_modifications <= DIA_NN_MAX_NUM_MODS, (
+            f"DIA-NN allows only {DIA_NN_MAX_NUM_MODS} PTMs per search, but the combination "
+            f"{get_mod_combination_str(combination)} with {len(combination)} PTMs "
+            f"{additional_modifications_message} exceeds this."
+        )
 
 
 def validate_path_exists(path: Path) -> None:
@@ -78,6 +94,6 @@ def validate_spectral_library_files_by_mod(
 
 def validate_spectral_library_not_empty(library_df: pd.DataFrame, mod: str) -> None:
     assert len(library_df) > 0, (
-        f"Filtered library for {mod} is empty. "
-        f"Exclude {mod} from the selection or fix the library."
+        f"Filtered library for {get_mod_combination_str(mod)} is empty. "
+        f"Exclude {get_mod_combination_str(mod)} from the selection or fix the library."
     )

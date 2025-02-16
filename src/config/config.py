@@ -119,7 +119,7 @@ class Config:
     """Additional parameters that should be added for the DIA-NN search, such as mass-acc,
     window etc. Ideally, mass-acc should be set to the same value as the tolerance for
     diagnostic ion detection (although DIA-NN always treats the value as ppm, not Da).
-    The mandatory parameters (f (the input file), lib, out) further parameters
+    The mandatory parameters (f (the input file), lib, out), further parameters
     (qvalue (set to 1 because aggregated q-value calculation is conducted afterwards),
     decoy-report, no-prot-inf) and the respective PTMs are already added automatically."""
 
