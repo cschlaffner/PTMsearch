@@ -37,6 +37,5 @@
     "modification_combinations": [],
     "modifications_additional": [],
     "fdr_threshold": 0.01,
-    "detection_count_percentile": 0.9,
     "detection_count_min": 500
 }

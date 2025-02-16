@@ -140,9 +140,9 @@ def test_mod_selection(
     )
     mods, combinations = get_detected_modifications_with_combinations(
         detected_ions_df,
-        detection_count_percentile,
         detection_count_min,
         num_additional_modifications,
+        detection_count_percentile=detection_count_percentile,
     )
     assert np.array_equal(sorted(mods), sorted(expected_mods))
     assert np.array_equal(sorted(combinations), sorted(expected_combinations))

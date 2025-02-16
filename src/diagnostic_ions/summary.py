@@ -92,7 +92,6 @@ def get_modification_combinations_with_counts(
 def plot_detected_ion_combinations(
     detected_ions_df: pd.DataFrame,
     result_path: Path,
-    detection_count_percentile: float,
     plot_fractions: Optional[List[float]] = None,
     topk: int = 50,
     figsize: Tuple[int, int] = (10, 15),
@@ -128,7 +127,6 @@ def plot_detected_ion_combinations(
     ax.set_xlabel("number of windows")
     ax.invert_yaxis()
 
-    plot_fractions.append(detection_count_percentile)
     combination_counts_sorted_reverse = combination_counts_sorted[::-1]
     max_count = combination_counts_sorted_reverse.max()
     color_map = cm.get_cmap("Dark2")
@@ -158,9 +156,9 @@ def plot_detected_ion_combinations(
 
 def get_detected_modifications_with_combinations(
     detected_ions_df: pd.DataFrame,
-    detection_count_percentile: float,
     detection_count_min: int,
     num_additional_modifications: int,
+    detection_count_percentile: float = 1.0,
 ) -> Tuple[List[str], FrozenSet[str]]:
     """Returns the single PTMs and combinations based on the detected
     ions. To avoid too small splits, a limit for the minimum number of

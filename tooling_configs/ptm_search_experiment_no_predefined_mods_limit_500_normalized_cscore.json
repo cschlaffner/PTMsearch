@@ -36,7 +36,6 @@
     "modifications_to_search": [],
     "modification_combinations": [],
     "modifications_additional": [],
-    "detection_count_percentile": 0.9,
     "detection_count_min": 500,
     "fdr_threshold": 0.01,
     "normalize_cscores": true

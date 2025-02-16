@@ -33,8 +33,7 @@ class Config:
     Must be in DIA-NN-compatible UniMod format, e.g. Y(UniMod:21). If specified,
     diagnostic ions found for other PTMs will be ignored. If not specified, PTMs and
     combinations will be selected automatically based on the detected ions. In that
-    case, you should configure detection_count_percentile and detection_count_min for
-    automatic detection."""
+    case, you should configure detection_count_min for automatic detection."""
 
     modification_combinations: List[FrozenSet[str]]
     """PTMs that should be considered together, i.e., extra splits will be
@@ -122,15 +121,6 @@ class Config:
     The mandatory parameters (f (the input file), lib, out), further parameters
     (qvalue (set to 1 because aggregated q-value calculation is conducted afterwards),
     decoy-report, no-prot-inf) and the respective PTMs are already added automatically."""
-
-    detection_count_percentile: float = 1.0
-    """If PTMs and combinations should be detected automatically: Consider only the
-    combinations that contain all together (=in sum) this fraction of the total number
-    of windows with PTMs (combinations are sorted beforehand by number of windows 
-    descending). This means that lowering this threshold will lead
-    to less selected combinations. Applies only to combination selection, not to single
-    PTM selection. Thus, you should also specify a detection_count_min to avoid small
-    splits for single PTMs."""
 
     detection_count_min: int = 0
     """If PTMs and combinations should be detected automatically: Consider

@@ -76,9 +76,7 @@ def main(config: Config, logger: logging.Logger):
 
         detected_ions_df.to_csv(ions_file, index=False)
         plot_detected_ions(detected_ions_df, result_path)
-        plot_detected_ion_combinations(
-            detected_ions_df, result_path, config.detection_count_percentile
-        )
+        plot_detected_ion_combinations(detected_ions_df, result_path)
 
         logger.info("Saved diagnostic ion detection results in %s.", ions_file)
     else:
@@ -98,12 +96,13 @@ def main(config: Config, logger: logging.Logger):
         modification_combinations = config.modification_combinations
 
         validate_modifications(modifications_to_search)
-        validate_modification_combinations(modification_combinations)
+        validate_modification_combinations(
+            modification_combinations, len(config.modifications_additional)
+        )
     else:
         modifications_to_search, modification_combinations = (
             get_detected_modifications_with_combinations(
                 detected_ions_df,
-                config.detection_count_percentile,
                 config.detection_count_min,
                 len(config.modifications_additional),
             )

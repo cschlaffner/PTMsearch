@@ -39,7 +39,6 @@ def create_config_json() -> Config:
         database_for_library_prediction=database_for_library_prediction.get(),
         dia_nn_library_params=get_dictionary(dia_nn_library_params.get()),
         dia_nn_search_params=get_dictionary(dia_nn_search_params.get()),
-        detection_count_percentile=float(detection_count_percentile.get()),
         detection_count_min=int(detection_count_min.get()),
         normalize_cscores=normalize_cscores.get(),
         run_only_ion_detection=run_only_ion_detection.get(),
@@ -200,29 +199,17 @@ modifications_additional_entry.grid(row=row_ptm_selection + 3, column=1)
 
 tk.Label(
     root,
-    text="Automatic selection: percentile",
-    font=arial,
-).grid(row=row_ptm_selection + 4, sticky=tk.W)
-detection_count_percentile = tk.StringVar()
-detection_count_percentile_entry = tk.Entry(
-    root, textvariable=detection_count_percentile
-)
-detection_count_percentile_entry.grid(row=row_ptm_selection + 4, column=1)
-detection_count_percentile_entry.insert(0, 1.0)
-
-tk.Label(
-    root,
     text="Automatic selection: minimum number of windows",
     font=arial,
-).grid(row=row_ptm_selection + 5, sticky=tk.W)
+).grid(row=row_ptm_selection + 4, sticky=tk.W)
 detection_count_min = tk.StringVar()
 detection_count_min_entry = tk.Entry(root, textvariable=detection_count_min)
-detection_count_min_entry.grid(row=row_ptm_selection + 5, column=1)
+detection_count_min_entry.grid(row=row_ptm_selection + 4, column=1)
 detection_count_min_entry.insert(0, 0)
 
 # -------------------------- Library handling -------------------
 
-row_library_handling = 21
+row_library_handling = 20
 tk.Label(root, text="Spectral library config", font=arial_headline).grid(
     row=row_library_handling, sticky=tk.W
 )
@@ -277,7 +264,7 @@ dia_nn_library_params_entry.grid(row=row_library_handling + 5, column=1)
 
 # -------------------------- DIA-NN search and aggregation -------------------
 
-row_search_aggregation = 27
+row_search_aggregation = 26
 tk.Label(root, text="DIA-NN search and aggregation config", font=arial_headline).grid(
     row=row_search_aggregation, sticky=tk.W
 )
