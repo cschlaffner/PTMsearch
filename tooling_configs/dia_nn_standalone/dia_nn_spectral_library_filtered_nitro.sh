@@ -12,5 +12,5 @@
 --strip-unknown-mods \
 --var-mods 3 \
 --pg-level 2 \
---out-lib /hpi/fs00/home/andrea.nathansen/proteomics_data/in_silico_library_filtered_nitro.predicted \
---fasta proteomics_data/database_for_diann/uniprotkb_AND_reviewed_true_AND_model_o_2024_07_16_with_crap_and_synthetic_filtered.fasta \
+--out-lib ptm-search-data/data/in_silico_library_filtered_nitro.predicted \
+--fasta ptm-search-data/data/database_for_diann/uniprotkb_AND_reviewed_true_AND_model_o_2024_07_16_with_crap_and_synthetic_filtered.fasta \
